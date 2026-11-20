@@ -1110,6 +1110,7 @@
       last_conf: null,
       last_probs: {},
       last_clean_text: '—',
+      detected_lang: 'en',
       is_ml: false,
       dispense_signal: null
     };
@@ -1160,9 +1161,10 @@
       if (!item) {
         return { lockSweet: false, lockMilk: false, allowZeroSugar: true };
       }
-      // If Cham has milk switched to None or Evaporated, Zero Sugar becomes allowed
-      const allowZero = item.id === 'cham'
-        ? (engineState.milk_type !== 'Condensed Milk')
+      // If milk is None (O) or Evaporated Milk (C), Zero Sugar is physically allowed for any beverage!
+      // Only Condensed Milk restricts Zero Sugar because condensed milk inherently contains ~55% sugar.
+      const allowZero = (engineState.milk_type === 'None' || engineState.milk_type === 'Evaporated Milk')
+        ? true
         : item.allowZeroSugar;
       return {
         lockSweet: item.lockSweet,
@@ -1259,7 +1261,93 @@
       return mods.length ? `${baseName} (${mods.join(', ')})` : baseName;
     }
 
-    function triggerConfirmAndDispense() {
+        // =========================================================================
+    // 2.2 MULTILINGUAL LANGUAGE IDENTIFICATION (LID) & NATURAL GENERATION (NLG)
+    // Professional, clean response generator tailored to customer's dialect/language
+    // =========================================================================
+    function detectUtteranceLang(text, fallbackLang = 'en') {
+      if (!text || typeof text !== 'string') return fallbackLang || 'en';
+      if (/[\u4e00-\u9fff]/.test(text)) return 'zh';
+
+      const tLow = text.toLowerCase();
+      const bmWords = [
+        'nak', 'mau', 'satu', 'dua', 'tiga', 'panas', 'sejuk', 'ais', 'kurang', 'manis', 'tak', 'xnak', 'taknak',
+        'tanpa', 'gula', 'susu', 'cair', 'pekat', 'batal', 'semula', 'bayar', 'boleh', 'sedap', 'minum',
+        'cawan', 'tambah', 'bancuh', 'tolong', 'bagi', 'saya', 'sihat', 'berapa', 'apa', 'ini', 'sedikit',
+        'teh', 'kopi', 'cham'
+      ];
+      let bmHits = 0;
+      for (const w of bmWords) {
+        if (new RegExp(`\\b${w}\\b`, 'i').test(tLow)) bmHits++;
+      }
+
+      const enWords = [
+        'want', 'order', 'please', 'one', 'two', 'hot', 'iced', 'ice', 'cold', 'warm',
+        'less', 'sugar', 'zero', 'no', 'milk', 'condensed', 'evaporated', 'cancel', 'reset',
+        'confirm', 'yes', 'healthy', 'calorie', 'calories', 'which', 'drink', 'instead', 'change'
+      ];
+      let enHits = 0;
+      for (const w of enWords) {
+        if (new RegExp(`\\b${w}\\b`, 'i').test(tLow)) enHits++;
+      }
+
+      if (bmHits > enHits) return 'bm';
+      if (enHits > bmHits) return 'en';
+      return fallbackLang || 'en';
+    }
+
+    function getNlgReply(key, params = {}, lang = 'en') {
+      const l = (lang === 'bm' || lang === 'zh' || lang === 'en') ? lang : 'en';
+      const templates = {
+        en: {
+          ask_temperature: (p) => `Sure! One ${p.drink}. Would you like it Hot or Iced?`,
+          ask_sweetness: (p) => `Got it! One ${p.disp}. What sweetness level would you prefer: Normal, Less Sugar, or Zero Sugar?`,
+          ask_milk: (p) => `Would you like Condensed Milk, Evaporated Milk (C), or No Milk (O)?`,
+          confirm_order: (p) => `Ready! One ${p.title}. Total is RM ${p.price.toFixed(2)}. Confirm your order?`,
+          order_confirmed: (p) => `Order Confirmed & Payment Received! Brewing your ${p.title} (RM ${p.price.toFixed(2)}). Please collect your cup below!`,
+          reset: (p) => `Order cleared! Let's start fresh. What would you like to drink today?`,
+          single_cup: (p) => `Sorry! This ChatCoffee unmanned kiosk dispenses 1 cup per order. Please confirm and collect this cup first!`,
+          switch_temp: (p) => `Okay! Switched to ${p.label}.`,
+          change_drink: (p) => `Sure! Changed from ${p.oldTitle} to ${p.newTitle}.`,
+          ask_change_what: (p) => `Sure! What would you like to change to? We have Kopi, Teh, Cham, Milo, White Coffee, or Americano.`,
+          health_query: (p) => `For healthy options (low calories & less sugar), ChatCoffee recommends Kopi O Kosong (24 kcal, 0g sugar, RM 3.20), Teh O Kosong (24 kcal, 0g sugar, RM 3.20), or Iced Teh O Limau Less Sugar (56 kcal, 8g sugar, RM 4.00). Which one would you like?`,
+          fallback: (p) => `Could you repeat that please? Please choose Kopi, Teh, Teh O Limau, Cham, White Coffee, Milo, or Americano.`
+        },
+        bm: {
+          ask_temperature: (p) => `Baik! Satu ${p.drink}. Nak Panas atau Ais?`,
+          ask_sweetness: (p) => `Boleh! Satu ${p.disp}. Nak manis Biasa, Kurang Manis, atau Tanpa Gula (Kosong)?`,
+          ask_milk: (p) => `Nak letak Susu Pekat, Susu Cair (C), atau Tanpa Susu (O)?`,
+          confirm_order: (p) => `Siap! Satu ${p.title}. Jumlah RM ${p.price.toFixed(2)}. Sahkan pesanan?`,
+          order_confirmed: (p) => `Pesanan disahkan & bayaran diterima! Sedang bancuh ${p.title} (RM ${p.price.toFixed(2)}). Sila ambil cawan kat bawah!`,
+          reset: (p) => `Pesanan dikosongkan. Jom order semula! Nak minum apa hari ini?`,
+          single_cup: (p) => `Maaf! Mesin ChatCoffee ini cuma boleh bancuh 1 cawan pada satu masa. Sila sahkan & ambil cawan ini dulu ya!`,
+          switch_temp: (p) => `Boleh! Ditukar kepada ${p.label}.`,
+          change_drink: (p) => `Boleh! Dah tukar daripada ${p.oldTitle} kepada ${p.newTitle}.`,
+          ask_change_what: (p) => `Boleh! Nak tukar ke minuman apa? Sila sebut Kopi, Teh, Cham, Milo, White Coffee, atau Americano.`,
+          health_query: (p) => `Untuk pilihan sihat (rendah kalori & kurang gula), ChatCoffee syorkan Kopi O Kosong (24 kcal, 0g gula, RM 3.20), Teh O Kosong (24 kcal, 0g gula, RM 3.20), atau Teh O Ais Limau Kurang Manis (56 kcal, 8g gula, RM 4.00). Nak cuba yang mana?`,
+          fallback: (p) => `Boleh tolong ulang semula? Sila pilih Kopi, Teh, Teh O Limau, Cham, White Coffee, Milo, atau Americano.`
+        },
+        zh: {
+          ask_temperature: (p) => `好的！一杯${p.drink}。请问要热的还是冰的？`,
+          ask_sweetness: (p) => `收到！一杯${p.disp}。请问甜度要正常糖、少糖还是无糖（走糖）？`,
+          ask_milk: (p) => `请问要加炼乳、淡奶（C），还是不加奶（O）？`,
+          confirm_order: (p) => `好的！一杯${p.title}，总共 RM ${p.price.toFixed(2)}。请问确认下单吗？`,
+          order_confirmed: (p) => `下单成功并已收到付款！正在冲泡 ${p.title} (RM ${p.price.toFixed(2)})，请在下方出料口取杯！`,
+          reset: (p) => `订单已清空，欢迎重新点单！今天想喝点什么？`,
+          single_cup: (p) => `抱歉！ChatCoffee 无人咖啡机每次只能单杯出料。请先确认并取走当前这杯哦！`,
+          switch_temp: (p) => `好的！已切换为 ${p.label}。`,
+          change_drink: (p) => `好的！已从 ${p.oldTitle} 更换为 ${p.newTitle}。`,
+          ask_change_what: (p) => `好的！请问想换成什么饮品？可选咖啡、奶茶、鸳鸯、美禄、白咖啡或美式咖啡。`,
+          health_query: (p) => `为您推荐健康低卡低糖饮品：Kopi O Kosong（24 kcal，0g 糖，RM 3.20）、Teh O Kosong（24 kcal，0g 糖，RM 3.20）或 Teh O Ais Limau 少糖（56 kcal，8g 糖，RM 4.00）。您想点哪一杯？`,
+          fallback: (p) => `抱歉没听清，请问可以重复一遍吗？可选咖啡、奶茶、柠檬茶、鸳鸯、白咖啡或美禄。`
+        }
+      };
+      const table = templates[l] || templates['en'];
+      const fn = table[key] || templates['en'][key];
+      return fn ? fn(params) : '';
+    }
+
+    function triggerConfirmAndDispense(lang = engineState.detected_lang || uiLang) {
       if (!engineState.base_drink) engineState.base_drink = 'Kopi';
       if (!engineState.temperature) engineState.temperature = menuTempTab || 'Hot';
       if (!engineState.sweetness_level) engineState.sweetness_level = 'Normal';
@@ -1278,7 +1366,7 @@
         hardware_dispenser: 'TAP_PORT_01_ACTIVE',
         timestamp: ts
       };
-      return `Order Confirmed & Payment Received! Sedang bancuh ${title} (RM ${engineState.price_rm.toFixed(2)}). Sila ambil cawan kat bawah!`;
+      return getNlgReply('order_confirmed', { title, price: engineState.price_rm }, lang);
     }
 
     function processUtterance(utterance) {
@@ -1287,6 +1375,9 @@
       const slots = extractDrinkSlots(utterance);
       const pred = predictIntent(utterance, slots, engineState);
       const intent = pred.intent;
+
+      const userLang = detectUtteranceLang(utterance, engineState.detected_lang || uiLang);
+      engineState.detected_lang = userLang;
 
       engineState.last_intent = intent;
       engineState.last_conf = pred.confidence !== undefined ? pred.confidence : null;
@@ -1297,26 +1388,20 @@
       // 1. System Reset
       if (intent === 'system_reset') {
         resetEngineState(false);
-        return "Pesanan dikosongkan. Jom order semula boss! Nak minum apa hari ini?";
+        return getNlgReply('reset', {}, userLang);
       }
 
       // 2. Single-Cup Physical Vending Machine Limit (tambah / tambah lagi)
       if (intent === 'single_cup_limit') {
-        const isZh = /[\u4e00-\u9fff]/.test(utterance);
-        if (isZh) {
-          return "抱歉老板！ChatCoffee 无人咖啡机每次只能单杯出料（Single-Cup Dispenser Limit）。请先确认并取走当前这杯，再点下一杯哦！";
-        }
-        return "Maaf boss! Mesin ChatCoffee ini cuma boleh bancuh 1 cawan pada satu masa (Single-Cup Dispenser Limit). Sila sahkan & ambil cawan ini dulu, lepas tu baru order cawan seterusnya ya!";
+        return getNlgReply('single_cup', {}, userLang);
       }
 
       // 3. Final Order Confirmation
       if (intent === 'order_confirm') {
-        return triggerConfirmAndDispense();
+        return triggerConfirmAndDispense(userLang);
       }
 
       // 4. DYNAMIC TEMPERATURE SWITCHER (Fixes Hot <-> Cold mid-slot bug!)
-      // Even when pending_slot is 'sweetness_level' or 'milk_type', if user inputs opposite temperature ("cold", "ais", "sejuk", "hot", "panas"),
-      // immediately switch engineState.temperature and sync menuTempTab!
       if (
         engineState.base_drink &&
         (
@@ -1332,39 +1417,104 @@
         }
         if (slots.temp_detail) engineState.temp_detail = slots.temp_detail;
         if (slots.ice_level) engineState.ice_level = slots.ice_level;
-        engineState.last_intent = 'modify_temperature';
+        engineState.last_intent = 'modify_order';
         computeDrinkPricingAndKb();
         activeScreen = 'detail';
-        const detailLabel = engineState.temperature === 'Iced'
-          ? `Iced (${engineState.ice_level})`
-          : (engineState.temp_detail === 'Warm' ? 'Warm (Suam)' : 'Hot (Panas)');
-        return checkMissingSlotsAndReply(`Okay boss! Switched to ${detailLabel}.`);
+        let label = engineState.temperature === 'Iced' ? 'Iced' : (engineState.temp_detail === 'Warm' ? 'Warm' : 'Hot');
+        if (userLang === 'bm') label = engineState.temperature === 'Iced' ? 'Ais' : (engineState.temp_detail === 'Warm' ? 'Suam' : 'Panas');
+        else if (userLang === 'zh') label = engineState.temperature === 'Iced' ? '冰' : (engineState.temp_detail === 'Warm' ? '温' : '热');
+        return checkMissingSlotsAndReply(getNlgReply('switch_temp', { label }, userLang), userLang);
       }
 
-      // 5. Contextual Pending Slot Resolution
+      // 5. Contextual Pending Slot Resolution (CRITICAL FIX: Prevents Intent Hijacking!)
       if (engineState.status === 'GATHERING_SLOTS' && engineState.pending_slot) {
         const ps = engineState.pending_slot;
+        let slotFilled = false;
+
         if (ps === 'sweetness_level') {
-          if (slots.sweetness_level) { engineState.sweetness_level = slots.sweetness_level; engineState.pending_slot = null; }
-          else if (['normal', 'biasa', 'sedang', '100%'].some(w => tLow.includes(w))) { engineState.sweetness_level = 'Normal'; engineState.pending_slot = null; }
-          else if (['kurang manis', 'siu dai', 'siew dai', 'sedikit', '少甜', '少糖'].some(w => tLow.includes(w))) { engineState.sweetness_level = 'Less Sugar'; engineState.pending_slot = null; }
-          else if (['kosong', 'zero', 'no sugar', '无糖'].some(w => tLow.includes(w))) { engineState.sweetness_level = 'Zero Sugar'; engineState.pending_slot = null; }
+          let swVal = null;
+          if (slots.sweetness_level) {
+            swVal = slots.sweetness_level;
+          } else if (['kosong', 'zero', 'no sugar', 'tanpa gula', '0%', '无糖', '走糖'].some(w => tLow.includes(w))) {
+            swVal = 'Zero Sugar';
+          } else if (['kurang manis', 'siu dai', 'siew dai', 'sedikit', 'less sugar', 'half sugar', '50%', '30%', '25%', '少甜', '少糖', '微糖'].some(w => tLow.includes(w))) {
+            swVal = 'Less Sugar';
+          } else if (['normal', 'biasa', 'sedang', 'standard', '100%', '正常糖', '正常甜'].some(w => tLow.includes(w))) {
+            swVal = 'Normal';
+          } else if (['extra sugar', 'lebih manis', 'gah dai', 'ga dai', '120%', '多糖', '多甜'].some(w => tLow.includes(w))) {
+            swVal = 'Extra Sugar';
+          }
+
+          if (swVal) {
+            engineState.sweetness_level = swVal;
+            engineState.pending_slot = null;
+            slotFilled = true;
+
+            // Smart Kopitiam Zero Sugar Coupling:
+            // When customer requests Zero Sugar on Teh or Kopi without specifying condensed milk,
+            // automatically couple to 'None' (Teh O Kosong / Kopi O Kosong) so Zero Sugar is valid!
+            if (swVal === 'Zero Sugar' && ['Teh', 'Kopi'].includes(engineState.base_drink)) {
+              if (!engineState.milk_type || engineState.milk_type === 'Condensed Milk') {
+                engineState.milk_type = 'None';
+                engineState.selected_item_id = engineState.base_drink === 'Teh' ? 'teh_o' : 'kopi_o';
+              }
+            }
+          }
         } else if (ps === 'milk_type') {
-          if (['biasa', 'normal', 'condensed', 'pekat', '普通奶'].some(w => tLow.includes(w))) { engineState.milk_type = 'Condensed Milk'; engineState.pending_slot = null; }
-          else if (/\b(?:c|si|susu cair|evaporated)\b/.test(tLow) || utterance.includes('淡奶')) { engineState.milk_type = 'Evaporated Milk'; engineState.pending_slot = null; }
-          else if (/\b(?:o|kosong|tanpa susu|no milk|black)\b/.test(tLow) || utterance.includes('不加奶')) { engineState.milk_type = 'None'; engineState.pending_slot = null; }
-          else if (slots.milk_type) { engineState.milk_type = slots.milk_type; engineState.pending_slot = null; }
+          let mkVal = null;
+          if (['biasa', 'normal', 'condensed', 'pekat', 'susu pekat', '普通奶', '炼乳'].some(w => tLow.includes(w))) {
+            mkVal = 'Condensed Milk';
+          } else if (/\b(?:c|si|susu cair|evaporated)\b/.test(tLow) || utterance.includes('淡奶')) {
+            mkVal = 'Evaporated Milk';
+          } else if (/\b(?:o|kosong|tanpa susu|no milk|black)\b/.test(tLow) || utterance.includes('不加奶')) {
+            mkVal = 'None';
+          } else if (slots.milk_type) {
+            mkVal = slots.milk_type;
+          }
+
+          if (mkVal) {
+            engineState.milk_type = mkVal;
+            engineState.pending_slot = null;
+            slotFilled = true;
+          }
         } else if (ps === 'temperature') {
-          if (['ais', 'peng', 'ice', 'iced', 'sejuk', 'cold', '冰'].some(w => tLow.includes(w))) { engineState.temperature = 'Iced'; engineState.pending_slot = null; }
-          else if (['panas', 'hot', 'warm', '热'].some(w => tLow.includes(w))) { engineState.temperature = 'Hot'; engineState.pending_slot = null; }
-          else if (slots.temperature) { engineState.temperature = slots.temperature; engineState.pending_slot = null; }
+          let tempVal = null;
+          if (['ais', 'peng', 'ping', 'ice', 'iced', 'sejuk', 'cold', '冰', '冻', '凍', '冷'].some(w => tLow.includes(w))) {
+            tempVal = 'Iced';
+          } else if (['suam', 'warm', '温'].some(w => tLow.includes(w))) {
+            tempVal = 'Hot';
+            engineState.temp_detail = 'Warm';
+          } else if (['panas', 'hot', '热', '熱'].some(w => tLow.includes(w))) {
+            tempVal = 'Hot';
+            engineState.temp_detail = 'Hot';
+          } else if (slots.temperature) {
+            tempVal = slots.temperature;
+          }
+
+          if (tempVal) {
+            engineState.temperature = tempVal;
+            menuTempTab = tempVal;
+            engineState.pending_slot = null;
+            slotFilled = true;
+          }
+        }
+
+        if (slotFilled) {
+          engineState.last_intent = 'clarify_order';
+          engineState.is_ml = false;
+          computeDrinkPricingAndKb();
+          activeScreen = 'detail';
+          return checkMissingSlotsAndReply('', userLang);
         }
       }
 
       // 6. Explicit Mid-Order Modification
       if (intent === 'modify_order') {
-        const oldTitle = engineState.base_drink ? getFullDrinkTitle() : 'minuman tadi';
-        if (slots.base_drink) engineState.selected_item_id = null; engineState.base_drink = slots.base_drink;
+        const oldTitle = engineState.base_drink ? getFullDrinkTitle() : (userLang === 'zh' ? '刚才的饮品' : (userLang === 'bm' ? 'minuman tadi' : 'previous drink'));
+        if (slots.base_drink) {
+          engineState.selected_item_id = null;
+          engineState.base_drink = slots.base_drink;
+        }
         if (slots.temperature) engineState.temperature = slots.temperature;
         if (slots.sweetness_level) engineState.sweetness_level = slots.sweetness_level;
         if (slots.milk_type) engineState.milk_type = slots.milk_type;
@@ -1374,26 +1524,29 @@
         if (engineState.temperature) menuTempTab = engineState.temperature;
         computeDrinkPricingAndKb();
         if (engineState.base_drink) activeScreen = 'detail';
+
         if (!engineState.base_drink) {
-          return "Boleh boss! Nak tukar ke minuman apa? Kopi, Teh, Teh O Limau, Cham, Milo atau White Coffee?";
+          return getNlgReply('ask_change_what', {}, userLang);
         }
-        return checkMissingSlotsAndReply(`Boleh boss! Dah tukar ${oldTitle} kepada ${getFullDrinkTitle()}.`);
+        return checkMissingSlotsAndReply(getNlgReply('change_drink', { oldTitle, newTitle: getFullDrinkTitle() }, userLang), userLang);
       }
 
-      // 7. Pure Health RAG (Low Calorie & Less Sugar)
+      // 7. Pure Health RAG
       if (intent === 'health_query') {
-        return "Untuk pilihan sihat (low calories & less sugar), ChatCoffee rekomen Kopi O Kosong (24 kcal, 0g sugar, RM 3.20), Teh O Kosong (24 kcal, 0g sugar, RM 3.20), atau Teh O Ais Limau Less Sugar (56 kcal, 8g sugar, RM 4.00). Nak order yang mana boss?";
+        return getNlgReply('health_query', {}, userLang);
       }
 
       // 8. New Order / Slot Filling
       if (slots.base_drink) {
         if (engineState.base_drink && slots.base_drink !== engineState.base_drink) {
-          engineState.selected_item_id = null; engineState.base_drink = slots.base_drink;
+          engineState.selected_item_id = null;
+          engineState.base_drink = slots.base_drink;
           engineState.temperature = slots.temperature || null;
           engineState.sweetness_level = slots.sweetness_level || null;
           engineState.milk_type = slots.milk_type || (slots.base_drink === 'Teh O Limau' ? 'None' : null);
         } else {
-          engineState.selected_item_id = null; engineState.base_drink = slots.base_drink;
+          engineState.selected_item_id = null;
+          engineState.base_drink = slots.base_drink;
         }
         engineState.status = 'GATHERING_SLOTS';
         engineState.dispense_signal = null;
@@ -1409,39 +1562,50 @@
       if (engineState.base_drink) {
         computeDrinkPricingAndKb();
         activeScreen = 'detail';
-        return checkMissingSlotsAndReply('');
+        return checkMissingSlotsAndReply('', userLang);
       }
 
       if (slots.temperature && !engineState.base_drink) {
         menuTempTab = slots.temperature;
         activeScreen = 'menu';
-        return `Okay boss! Showing ${slots.temperature === 'Iced' ? 'Iced Drinks (Sejuk)' : 'Hot Drinks (Panas)'}. Nak minum apa?`;
+        let tempDisp = slots.temperature === 'Iced' ? 'Iced Drinks' : 'Hot Drinks';
+        if (userLang === 'bm') tempDisp = slots.temperature === 'Iced' ? 'Minuman Ais' : 'Minuman Panas';
+        else if (userLang === 'zh') tempDisp = slots.temperature === 'Iced' ? '冷饮菜单' : '热饮菜单';
+        return userLang === 'zh'
+          ? `好的！为您展示${tempDisp}，请问想喝点什么？`
+          : (userLang === 'bm'
+            ? `Boleh! Menunjukkan ${tempDisp}. Nak minum apa?`
+            : `Okay! Showing ${tempDisp}. What would you like to drink?`);
       }
 
-      return "Boleh tolong ulang boss? Sila pilih Kopi, Teh, Teh O Limau, Cham, White Coffee, Milo atau Neslo.";
+      return getNlgReply('fallback', {}, userLang);
     }
 
-    function checkMissingSlotsAndReply(prefix) {
+    function checkMissingSlotsAndReply(prefix, lang = engineState.detected_lang || uiLang) {
       const p = prefix ? prefix + ' ' : '';
       if (!engineState.temperature) {
         engineState.status = 'GATHERING_SLOTS';
         engineState.pending_slot = 'temperature';
-        return `${p}Baik boss! Satu ${engineState.base_drink}. Mau Hot (Panas) atau Iced (Sejuk)?`;
+        return `${p}${getNlgReply('ask_temperature', { drink: engineState.base_drink }, lang)}`;
       }
       if (!engineState.sweetness_level) {
         engineState.status = 'GATHERING_SLOTS';
         engineState.pending_slot = 'sweetness_level';
-        const disp = `${engineState.base_drink} ${engineState.temperature === 'Iced' ? 'Iced' : 'Hot'}`;
-        return `${p}Baik boss! Satu ${disp}. Mau Normal, Less Sugar, atau No Sugar?`;
+        const isIced = engineState.temperature === 'Iced';
+        let tempWord = isIced ? 'Ice' : 'Panas';
+        if (lang === 'en') tempWord = isIced ? 'Iced' : 'Hot';
+        else if (lang === 'zh') tempWord = isIced ? '冰' : '热';
+        const disp = `${engineState.base_drink} ${tempWord}`;
+        return `${p}${getNlgReply('ask_sweetness', { disp }, lang)}`;
       }
       if (!engineState.milk_type && engineState.base_drink !== 'Teh O Limau' && engineState.base_drink !== 'Americano') {
         engineState.status = 'GATHERING_SLOTS';
         engineState.pending_slot = 'milk_type';
-        return `${p}Nak letak Condensed Milk, Evaporated Milk (C), atau No Milk (O)?`;
+        return `${p}${getNlgReply('ask_milk', {}, lang)}`;
       }
       engineState.status = 'AWAITING_CONFIRMATION';
       engineState.pending_slot = null;
-      return `${p}Siap boss! Satu ${getFullDrinkTitle()}. Total RM ${engineState.price_rm.toFixed(2)}. Confirm order boss?`;
+      return `${p}${getNlgReply('confirm_order', { title: getFullDrinkTitle(), price: engineState.price_rm }, lang)}`;
     }
 
     // =========================================================================
@@ -1482,7 +1646,7 @@
     let recognition = null;
     let brewTimer = null;
 
-    function speakText(text) {
+    function speakText(text, lang = engineState.detected_lang || uiLang) {
       if (!ttsEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
       try {
         window.speechSynthesis.cancel();
