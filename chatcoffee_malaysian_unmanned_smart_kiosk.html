@@ -718,7 +718,7 @@
           { id: 'teh_tarik', label: 'Teh Tarik', base: 'Teh', defaultSweet: 'Normal', defaultMilk: 'Condensed Milk', lockSweet: false, lockMilk: true, allowZeroSugar: false, hotPrice: 3.70, icedPrice: 4.50, color: '#B4692D', foam: '#F3D8B6' },
           { id: 'teh_c', label: 'Teh C', base: 'Teh', defaultSweet: 'Normal', defaultMilk: 'Evaporated Milk', lockSweet: false, lockMilk: true, allowZeroSugar: true, hotPrice: 3.90, icedPrice: 4.70, color: '#C27A3E', foam: '#F0DEC5' },
           { id: 'teh_o_limau', label: 'Teh O Limau', base: 'Teh O Limau', defaultSweet: 'Normal', defaultMilk: 'None', lockSweet: false, lockMilk: true, allowZeroSugar: true, hotPrice: 3.20, icedPrice: 4.00, color: '#B45309', foam: '#FDE047' },
-          { id: 'cham', label: 'Cham (鸳鸯)', base: 'Cham', defaultSweet: 'Normal', defaultMilk: 'Condensed Milk', lockSweet: false, lockMilk: false, allowZeroSugar: false, hotPrice: 4.20, icedPrice: 5.00, color: '#7D4B28', foam: '#D8B48C' },
+          { id: 'cham', label: 'Cham', base: 'Cham', defaultSweet: 'Normal', defaultMilk: 'Condensed Milk', lockSweet: false, lockMilk: true, allowZeroSugar: false, hotPrice: 4.20, icedPrice: 5.00, color: '#7D4B28', foam: '#D8B48C' },
           { id: 'white_coffee', label: 'White Coffee', base: 'White Coffee', defaultSweet: 'Normal', defaultMilk: 'Condensed Milk', lockSweet: false, lockMilk: true, allowZeroSugar: false, hotPrice: 4.30, icedPrice: 5.10, color: '#A97C56', foam: '#F5E7D3' }
         ]
       },
@@ -842,7 +842,7 @@
 
       // Milk Entity (Teh O Limau & Americano stay None)
       if (slots.base_drink !== 'Teh O Limau' && slots.base_drink !== 'Americano') {
-        if (/\b(?:normal milk|susu pekat|condensed|condensed milk|susu biasa)\b/.test(tLow) || text.includes('炼乳') || text.includes('普通奶') || text.includes('正常奶')) {
+        if (/\b(?:normal milk|susu pekat|condensed|condensed milk|susu biasa|tarik)\b/.test(tLow) || text.includes('炼乳') || text.includes('普通奶') || text.includes('正常奶') || text.includes('拉茶')) {
           slots.milk_type = 'Condensed Milk';
         } else if (/\b(?:susu cair|evaporated|evaporated milk|c|si)\b/.test(tLow) || text.includes('淡奶')) {
           slots.milk_type = 'Evaporated Milk';
@@ -1188,7 +1188,7 @@
       }
 
       const basePrices = {
-        'Cham': 4.20, 'White Coffee': 4.30, 'Neslo': 4.20, 'Milo': 3.70,
+        'Cham': 4.20, 'White Coffee': 4.30, 'Neslo': 4.20, 'Milo': 3.20,
         'Kopi': 3.20, 'Teh': 3.20, 'Teh O Limau': 3.20, 'Americano': 5.00
       };
 
@@ -1204,7 +1204,7 @@
 
       let price = basePrices[engineState.base_drink] || 3.70;
       if (engineState.base_drink !== 'Teh O Limau' && engineState.base_drink !== 'Americano') {
-        if (engineState.milk_type === 'Condensed Milk' && (engineState.base_drink === 'Kopi' || engineState.base_drink === 'Teh')) {
+        if (engineState.milk_type === 'Condensed Milk' && (engineState.base_drink === 'Kopi' || engineState.base_drink === 'Teh' || engineState.base_drink === 'Milo')) {
           price += 0.50;
         } else if (engineState.milk_type === 'Evaporated Milk') {
           price += 0.70;
@@ -1599,9 +1599,14 @@
         return `${p}${getNlgReply('ask_sweetness', { disp }, lang)}`;
       }
       if (!engineState.milk_type && engineState.base_drink !== 'Teh O Limau' && engineState.base_drink !== 'Americano') {
-        engineState.status = 'GATHERING_SLOTS';
-        engineState.pending_slot = 'milk_type';
-        return `${p}${getNlgReply('ask_milk', {}, lang)}`;
+        // Auto-assign default milk for fixed-recipe beverages (White Coffee, Neslo, Cham)
+        if (['White Coffee', 'Neslo', 'Cham'].includes(engineState.base_drink)) {
+          engineState.milk_type = 'Condensed Milk';
+        } else {
+          engineState.status = 'GATHERING_SLOTS';
+          engineState.pending_slot = 'milk_type';
+          return `${p}${getNlgReply('ask_milk', {}, lang)}`;
+        }
       }
       engineState.status = 'AWAITING_CONFIRMATION';
       engineState.pending_slot = null;
