@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY . .
 
-# Expose port (default 7860 for Hugging Face Spaces, 8000 for standard)
-ENV PORT=7860
-EXPOSE 7860
+# Support dynamic port binding for Render ($PORT) or fallback to 10000
+ENV PORT=10000
+EXPOSE 10000
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-10000}"]
