@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Large raw datasets / audio corpora (> 100MB breaks GitHub push)
+*.zip
+*.tar.gz
+*.rar
+Malay_Conversational_Speech_Corpus/
+asr_malcsc/
+Malay_Conversational_Speech_Corpus.zip
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Temporary and cache directories
+.uv_cache/
+uv_cache/
+temp/
+.temp/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
