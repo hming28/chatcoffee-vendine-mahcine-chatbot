@@ -1,5 +1,5 @@
 """
-app.py - RojakBrew Unmanned Smart Kiosk Backend Server
+app.py - ChatCoffee Unmanned Smart Kiosk Backend Server
 Powered by Scikit-Learn Machine Learning Models + Unified Coffee Knowledge Base
 """
 
@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-app = FastAPI(title="RojakBrew NLP Kiosk API", version="2.0")
+app = FastAPI(title="ChatCoffee NLP Kiosk API", version="2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,7 +31,7 @@ app.add_middleware(
 # -------------------------------------------------------------
 # 1. Load ML Artifacts & Knowledge Base Datasets
 # -------------------------------------------------------------
-MODEL_PATH = os.path.join(BASE_DIR, "models", "rojak_intent_classifier.joblib")
+MODEL_PATH = os.path.join(BASE_DIR, "models", "chatcoffee_intent_classifier.joblib")
 SLANG_PATH = os.path.join(BASE_DIR, "NLP_Datasets", "shortform-dict.json")
 if not os.path.exists(SLANG_PATH):
     SLANG_PATH = os.path.join(BASE_DIR, "shortform-dict.json")
@@ -396,5 +396,5 @@ def serve_kiosk():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    print(f"Starting RojakBrew ML Kiosk on http://localhost:{port}")
+    print(f"Starting ChatCoffee ML Kiosk on http://localhost:{port}")
     uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

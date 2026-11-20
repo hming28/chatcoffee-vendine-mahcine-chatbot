@@ -1,4 +1,4 @@
-# ☕ RojakBrew — ChatCoffee: Malaysian Unmanned Smart Kiosk
+# ☕ ChatCoffee: Malaysian Unmanned Smart Kiosk
 ### TAR UMT — BMDS2123 Natural Language Processing (Topic 4 Assignment)
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -18,7 +18,7 @@ An autonomous, multi-turn conversational AI kiosk engineered specifically for au
 
 2. **Supervised ML Intent Classifier (Zero Rule-Based Classification)**:
    - Evaluated across 4 algorithms (MultinomialNB, Logistic Regression, LinearSVC, Random Forest).
-   - Champion Model: **Logistic Regression with TF-IDF N-Gram (1-2) Vectorization** trained on **850 curated gold instances (`rojak_brew_gold_850.csv`)**.
+   - Champion Model: **Logistic Regression with TF-IDF N-Gram (1-2) Vectorization** trained on **850 curated gold instances (`chatcoffee_gold_850.csv`)**.
    - Outputs live Softmax probability distributions across 4 core intents:
      - `order_drink`
      - `clarify_order`
@@ -44,14 +44,14 @@ An autonomous, multi-turn conversational AI kiosk engineered specifically for au
 ```text
 ├── app.py                                         # FastAPI server hosting REST API & Kiosk UI
 ├── chatcoffee_malaysian_unmanned_smart_kiosk.html # Interactive Kiosk Prototype (Embedded ML)
-├── rojak_brew_gold_850.csv                        # 850-instance Gold NLU Benchmark Dataset
+├── chatcoffee_gold_850.csv                        # 850-instance Gold NLU Benchmark Dataset
 ├── unified_coffee_kb.csv                          # 378-drink Grounded Knowledge Base
 ├── requirements.txt                               # Production Python dependencies
 ├── Dockerfile                                     # 1-Click Container Deployment
 ├── Procfile                                       # Render / PaaS deployment entrypoint
 ├── models/
-│   ├── rojak_intent_classifier.joblib             # Serialized Scikit-Learn champion model
-│   └── rojak_model_web.json                       # Mathematical vector-matrix weights for Web
+│   ├── chatcoffee_intent_classifier.joblib             # Serialized Scikit-Learn champion model
+│   └── chatcoffee_model_web.json                       # Mathematical vector-matrix weights for Web
 └── NLP_Datasets/
     ├── shortform-dict.json                        # 341 Malaysian slang normalization rules
     ├── kopitiam.csv                               # Kopitiam beverage domain ontology
