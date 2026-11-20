@@ -25,11 +25,13 @@
       --text-muted: #A8A29E;
       --slider-track: #FFFFFF;
       --glass-stroke: #9CA3AF;
+      --shadow-kiosk: 0 22px 55px rgba(0, 0, 0, 0.55);
+      --shadow-panel: 0 16px 36px rgba(0, 0, 0, 0.4);
     }
     body.light-theme {
       --bg-page: #F2EDE4;
       --bg-kiosk: #FFFFFF;
-      --border-kiosk: #29201B;
+      --border-kiosk: rgba(41, 32, 27, 0.22);
       --bg-panel: #FFFFFF;
       --bg-panel-head: #FAF6F0;
       --bg-inner: #F7F2EA;
@@ -42,6 +44,8 @@
       --text-muted: #786557;
       --slider-track: #D6CBC0;
       --glass-stroke: #78716C;
+      --shadow-kiosk: 0 8px 28px rgba(30, 20, 14, 0.08);
+      --shadow-panel: 0 6px 20px rgba(30, 20, 14, 0.06);
     }
 
     body {
@@ -60,13 +64,17 @@
     .kiosk-bezel {
       background: var(--bg-kiosk);
       border: 2px solid var(--border-kiosk);
-      box-shadow: 0 22px 55px rgba(0, 0, 0, 0.35);
-      transition: background-color 0.25s ease, border-color 0.25s ease;
+      box-shadow: var(--shadow-kiosk);
+      transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
     .theme-panel {
       background: var(--bg-panel);
       border: 1px solid var(--border-subtle);
-      transition: background-color 0.25s ease, border-color 0.25s ease;
+      box-shadow: var(--shadow-panel);
+      transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    body.light-theme .quick-pill {
+      filter: brightness(0.82) saturate(1.15);
     }
     .theme-panel-head {
       background: var(--bg-panel-head);
@@ -486,7 +494,7 @@
       </section>
 
       <!-- BOTTOM CONSOLE: LIVE NLP & DST INSPECTOR (Horizontal Academic Telemetry) -->
-      <section id="inspectorPanel" class="hidden lg:block theme-panel rounded-2xl shadow-xl p-3.5 sm:p-4">
+      <section id="inspectorPanel" class="hidden lg:block theme-panel rounded-2xl p-3.5 sm:p-4">
         <div class="flex flex-wrap items-center justify-between gap-2 border-b theme-border pb-2.5 mb-3">
           <div class="flex items-center gap-2">
             <h2 class="text-xs sm:text-sm font-extrabold theme-text flex items-center gap-1.5">
@@ -579,7 +587,7 @@
 
     <!-- RIGHT COLUMN: TALL TYPELESS VOICE & ROJAK CHATBOT ASSISTANT -->
     <aside class="lg:col-span-4 relative flex flex-col">
-      <section class="theme-panel rounded-2xl shadow-xl flex flex-col overflow-hidden h-[520px] lg:h-auto lg:absolute lg:inset-0">
+      <section class="theme-panel rounded-2xl flex flex-col overflow-hidden h-[520px] lg:h-auto lg:absolute lg:inset-0">
         <!-- Voice Assistant Header -->
         <div class="px-3.5 py-3 theme-panel-head">
           <div class="flex items-center justify-between gap-2 mb-2">
@@ -607,7 +615,7 @@
               🟢 Direct Order
             </button>
             <button type="button" data-prompt="我要一杯鸳鸯" class="quick-pill px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30 hover:bg-amber-500/25 transition cursor-pointer">
-              🟡 Multi-Turn (鸳鸯)
+              🟡 Multi-Turn
             </button>
             <button type="button" data-prompt="Eh wait, change to Teh C panas instead" class="quick-pill px-2.5 py-1 rounded-full text-[11px] font-semibold bg-orange-500/15 text-orange-500 border border-orange-500/30 hover:bg-orange-500/25 transition cursor-pointer">
               🟠 Mid-Order Change
