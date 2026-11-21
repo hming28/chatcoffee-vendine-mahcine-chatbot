@@ -1,8 +1,8 @@
 drink_id,drink_name,category,prep_details,channel,price_rm,calories,total_fat_g,carbohydrates_g,sugars_g,caffeine_mg,temperature,sweetness_level,milk_type,bitter_level,description
-SC001,Brewed Coffee,Coffee,Short,Specialty Cafe,12.0,3,0.1,5.0,0.0,175.0,Hot,Zero Sugar,None,High,Brewed Coffee (Short)
-SC002,Brewed Coffee,Coffee,Tall,Specialty Cafe,12.5,4,0.1,10.0,0.0,260.0,Hot,Zero Sugar,None,High,Brewed Coffee (Tall)
-SC003,Brewed Coffee,Coffee,Grande,Specialty Cafe,13.5,5,0.1,10.0,0.0,330.0,Hot,Zero Sugar,Standard Milk,High,Brewed Coffee (Grande)
-SC004,Brewed Coffee,Coffee,Venti,Specialty Cafe,14.5,5,0.1,10.0,0.0,410.0,Hot,Zero Sugar,Standard Milk,High,Brewed Coffee (Venti)
+SC001,Brewed Coffee,Coffee,Short,Specialty Cafe,12.0,3,0.1,5.0,0.0,175.0,Hot,Zero Sugar,,High,Brewed Coffee (Short)
+SC002,Brewed Coffee,Coffee,Tall,Specialty Cafe,12.5,4,0.1,10.0,0.0,260.0,Hot,Zero Sugar,,High,Brewed Coffee (Tall)
+SC003,Brewed Coffee,Coffee,Grande,Specialty Cafe,13.5,5,0.1,10.0,0.0,330.0,Hot,Zero Sugar,,High,Brewed Coffee (Grande)
+SC004,Brewed Coffee,Coffee,Venti,Specialty Cafe,14.5,5,0.1,10.0,0.0,410.0,Hot,Zero Sugar,,High,Brewed Coffee (Venti)
 SC005,Caffè Latte,Classic Espresso Drinks,Short Nonfat Milk,Specialty Cafe,13.5,70,0.1,75.0,9.0,75.0,Hot,Less Sugar,Nonfat Milk,High,Caffè Latte (Short Nonfat Milk)
 SC006,Caffè Latte,Classic Espresso Drinks,2% Milk,Specialty Cafe,13.5,100,3.5,85.0,9.0,75.0,Hot,Less Sugar,2% Milk,High,Caffè Latte (2% Milk)
 SC007,Caffè Latte,Classic Espresso Drinks,Soymilk,Specialty Cafe,13.5,70,2.5,65.0,4.0,75.0,Hot,Less Sugar,Soy Milk,High,Caffè Latte (Soymilk)
@@ -39,8 +39,8 @@ SC037,Vanilla Latte (Or Other Flavoured Latte),Classic Espresso Drinks,Soymilk,S
 SC038,Vanilla Latte (Or Other Flavoured Latte),Classic Espresso Drinks,Venti Nonfat Milk,Specialty Cafe,16.0,250,0.3,180.0,45.0,150.0,Hot,Normal,Nonfat Milk,High,Vanilla Latte (Or Other Flavoured Latte) (Venti Nonfat Milk)
 SC039,Vanilla Latte (Or Other Flavoured Latte),Classic Espresso Drinks,2% Milk,Specialty Cafe,13.5,320,9.0,200.0,44.0,150.0,Hot,Normal,2% Milk,High,Vanilla Latte (Or Other Flavoured Latte) (2% Milk)
 SC040,Vanilla Latte (Or Other Flavoured Latte),Classic Espresso Drinks,Soymilk,Specialty Cafe,13.5,270,7.0,160.0,33.0,150.0,Hot,Normal,Soy Milk,High,Vanilla Latte (Or Other Flavoured Latte) (Soymilk)
-SC041,Caffè Americano,Classic Espresso Drinks,Short,Specialty Cafe,13.5,5,0.0,5.0,0.0,75.0,Hot,Zero Sugar,None,High,Caffè Americano (Short)
-SC042,Caffè Americano,Classic Espresso Drinks,Tall,Specialty Cafe,14.0,10,0.0,10.0,0.0,150.0,Hot,Zero Sugar,None,High,Caffè Americano (Tall)
+SC041,Caffè Americano,Classic Espresso Drinks,Short,Specialty Cafe,13.5,5,0.0,5.0,0.0,75.0,Hot,Zero Sugar,,High,Caffè Americano (Short)
+SC042,Caffè Americano,Classic Espresso Drinks,Tall,Specialty Cafe,14.0,10,0.0,10.0,0.0,150.0,Hot,Zero Sugar,,High,Caffè Americano (Tall)
 SC043,Caffè Americano,Classic Espresso Drinks,Grande,Specialty Cafe,15.0,15,0.0,15.0,0.0,225.0,Hot,Zero Sugar,Standard Milk,High,Caffè Americano (Grande)
 SC044,Caffè Americano,Classic Espresso Drinks,Venti,Specialty Cafe,16.0,25,0.0,15.0,0.0,300.0,Hot,Zero Sugar,Standard Milk,High,Caffè Americano (Venti)
 SC045,Cappuccino,Classic Espresso Drinks,Short Nonfat Milk,Specialty Cafe,13.5,50,0.1,60.0,7.0,75.0,Hot,Less Sugar,Nonfat Milk,High,Cappuccino (Short Nonfat Milk)
@@ -97,12 +97,12 @@ SC095,Hot Chocolate (Without Whipped Cream),Signature Espresso Drinks,Soymilk,Sp
 SC096,Hot Chocolate (Without Whipped Cream),Signature Espresso Drinks,Venti Nonfat Milk,Specialty Cafe,16.0,320,3.0,180.0,55.0,30.0,Hot,Normal,Nonfat Milk,High,Hot Chocolate (Without Whipped Cream) (Venti Nonfat Milk)
 SC097,Hot Chocolate (Without Whipped Cream),Signature Espresso Drinks,2% Milk,Specialty Cafe,13.5,380,11.0,200.0,54.0,30.0,Hot,Normal,2% Milk,High,Hot Chocolate (Without Whipped Cream) (2% Milk)
 SC098,Hot Chocolate (Without Whipped Cream),Signature Espresso Drinks,Soymilk,Specialty Cafe,13.5,330,9.0,160.0,44.0,30.0,Hot,Normal,Soy Milk,High,Hot Chocolate (Without Whipped Cream) (Soymilk)
-SC099,Caramel Apple Spice (Without Whipped Cream),Signature Espresso Drinks,Short,Specialty Cafe,13.5,140,0.0,10.0,33.0,0.0,Hot,Normal,None,High,Caramel Apple Spice (Without Whipped Cream) (Short)
-SC100,Caramel Apple Spice (Without Whipped Cream),Signature Espresso Drinks,Tall,Specialty Cafe,14.0,210,0.0,15.0,49.0,0.0,Hot,Normal,None,High,Caramel Apple Spice (Without Whipped Cream) (Tall)
+SC099,Caramel Apple Spice (Without Whipped Cream),Signature Espresso Drinks,Short,Specialty Cafe,13.5,140,0.0,10.0,33.0,0.0,Hot,Normal,,High,Caramel Apple Spice (Without Whipped Cream) (Short)
+SC100,Caramel Apple Spice (Without Whipped Cream),Signature Espresso Drinks,Tall,Specialty Cafe,14.0,210,0.0,15.0,49.0,0.0,Hot,Normal,,High,Caramel Apple Spice (Without Whipped Cream) (Tall)
 SC101,Caramel Apple Spice (Without Whipped Cream),Signature Espresso Drinks,Grande,Specialty Cafe,15.0,280,0.0,20.0,65.0,0.0,Hot,Normal,Standard Milk,High,Caramel Apple Spice (Without Whipped Cream) (Grande)
 SC102,Caramel Apple Spice (Without Whipped Cream),Signature Espresso Drinks,Venti,Specialty Cafe,16.0,360,0.0,25.0,83.0,0.0,Hot,Normal,Standard Milk,High,Caramel Apple Spice (Without Whipped Cream) (Venti)
-SC103,Tazo® Tea,Tazo® Tea Drinks,Short,Specialty Cafe,10.5,0,0.0,0.0,0.0,100.0,Hot,Zero Sugar,None,Low,Tazo® Tea (Short)
-SC104,Tazo® Tea,Tazo® Tea Drinks,Tall,Specialty Cafe,11.0,0,0.0,0.0,0.0,100.0,Hot,Zero Sugar,None,Low,Tazo® Tea (Tall)
+SC103,Tazo® Tea,Tazo® Tea Drinks,Short,Specialty Cafe,10.5,0,0.0,0.0,0.0,100.0,Hot,Zero Sugar,,Low,Tazo® Tea (Short)
+SC104,Tazo® Tea,Tazo® Tea Drinks,Tall,Specialty Cafe,11.0,0,0.0,0.0,0.0,100.0,Hot,Zero Sugar,,Low,Tazo® Tea (Tall)
 SC105,Tazo® Tea,Tazo® Tea Drinks,Grande,Specialty Cafe,12.0,0,0.0,0.0,0.0,100.0,Hot,Zero Sugar,Standard Milk,Low,Tazo® Tea (Grande)
 SC106,Tazo® Tea,Tazo® Tea Drinks,Venti,Specialty Cafe,13.0,0,0.0,0.0,0.0,100.0,Hot,Zero Sugar,Standard Milk,Low,Tazo® Tea (Venti)
 SC107,Tazo® Chai Tea Latte,Tazo® Tea Drinks,Short Nonfat Milk,Specialty Cafe,10.5,100,0.1,50.0,21.0,50.0,Hot,Normal,Nonfat Milk,Medium,Tazo® Chai Tea Latte (Short Nonfat Milk)
@@ -153,7 +153,7 @@ SC151,Tazo® Full-Leaf Red Tea Latte (Vanilla Rooibos),Tazo® Tea Drinks,Soymilk
 SC152,Tazo® Full-Leaf Red Tea Latte (Vanilla Rooibos),Tazo® Tea Drinks,Venti Nonfat Milk,Specialty Cafe,13.0,190,0.2,110.0,39.0,0.0,Hot,Normal,Nonfat Milk,Medium,Tazo® Full-Leaf Red Tea Latte (Vanilla Rooibos) (Venti Nonfat Milk)
 SC153,Tazo® Full-Leaf Red Tea Latte (Vanilla Rooibos),Tazo® Tea Drinks,2% Milk,Specialty Cafe,10.5,230,5.0,125.0,38.0,0.0,Hot,Normal,2% Milk,Medium,Tazo® Full-Leaf Red Tea Latte (Vanilla Rooibos) (2% Milk)
 SC154,Tazo® Full-Leaf Red Tea Latte (Vanilla Rooibos),Tazo® Tea Drinks,Soymilk,Specialty Cafe,10.5,210,4.0,100.0,32.0,0.0,Hot,Normal,Soy Milk,Medium,Tazo® Full-Leaf Red Tea Latte (Vanilla Rooibos) (Soymilk)
-SC155,Iced Brewed Coffee (With Classic Syrup),Shaken Iced Beverages,Tall,Specialty Cafe,12.5,60,0.0,4.0,15.0,120.0,Iced,Normal,None,High,Iced Brewed Coffee (With Classic Syrup) (Tall)
+SC155,Iced Brewed Coffee (With Classic Syrup),Shaken Iced Beverages,Tall,Specialty Cafe,12.5,60,0.0,4.0,15.0,120.0,Iced,Normal,,High,Iced Brewed Coffee (With Classic Syrup) (Tall)
 SC156,Iced Brewed Coffee (With Classic Syrup),Shaken Iced Beverages,Grande,Specialty Cafe,13.5,90,0.1,5.0,21.0,165.0,Iced,Normal,Standard Milk,High,Iced Brewed Coffee (With Classic Syrup) (Grande)
 SC157,Iced Brewed Coffee (With Classic Syrup),Shaken Iced Beverages,Venti,Specialty Cafe,14.5,130,0.1,5.0,31.0,235.0,Iced,Normal,Standard Milk,High,Iced Brewed Coffee (With Classic Syrup) (Venti)
 SC158,Iced Brewed Coffee (With Milk & Classic Syrup),Shaken Iced Beverages,Tall Nonfat Milk,Specialty Cafe,12.5,80,0.1,25.0,18.0,90.0,Iced,Normal,Nonfat Milk,High,Iced Brewed Coffee (With Milk & Classic Syrup) (Tall Nonfat Milk)
@@ -165,10 +165,10 @@ SC163,Iced Brewed Coffee (With Milk & Classic Syrup),Shaken Iced Beverages,Soymi
 SC164,Iced Brewed Coffee (With Milk & Classic Syrup),Shaken Iced Beverages,Venti Nonfat Milk,Specialty Cafe,14.5,160,0.1,50.0,36.0,125.0,Iced,Normal,Nonfat Milk,High,Iced Brewed Coffee (With Milk & Classic Syrup) (Venti Nonfat Milk)
 SC165,Iced Brewed Coffee (With Milk & Classic Syrup),Shaken Iced Beverages,2% Milk,Specialty Cafe,12.0,180,2.0,55.0,36.0,170.0,Iced,Normal,2% Milk,High,Iced Brewed Coffee (With Milk & Classic Syrup) (2% Milk)
 SC166,Iced Brewed Coffee (With Milk & Classic Syrup),Shaken Iced Beverages,Soymilk,Specialty Cafe,12.0,170,1.5,45.0,33.0,170.0,Iced,Normal,Soy Milk,High,Iced Brewed Coffee (With Milk & Classic Syrup) (Soymilk)
-SC167,Shaken Iced Tazo® Tea (With Classic Syrup),Shaken Iced Beverages,Tall,Specialty Cafe,12.5,60,0.0,0.0,15.0,170.0,Iced,Normal,None,Low,Shaken Iced Tazo® Tea (With Classic Syrup) (Tall)
+SC167,Shaken Iced Tazo® Tea (With Classic Syrup),Shaken Iced Beverages,Tall,Specialty Cafe,12.5,60,0.0,0.0,15.0,170.0,Iced,Normal,,Low,Shaken Iced Tazo® Tea (With Classic Syrup) (Tall)
 SC168,Shaken Iced Tazo® Tea (With Classic Syrup),Shaken Iced Beverages,Grande,Specialty Cafe,13.5,80,0.0,0.0,21.0,100.0,Iced,Normal,Standard Milk,Low,Shaken Iced Tazo® Tea (With Classic Syrup) (Grande)
 SC169,Shaken Iced Tazo® Tea (With Classic Syrup),Shaken Iced Beverages,Venti,Specialty Cafe,14.5,120,0.0,0.0,31.0,100.0,Iced,Normal,Standard Milk,Low,Shaken Iced Tazo® Tea (With Classic Syrup) (Venti)
-SC170,Shaken Iced Tazo® Tea Lemonade (With Classic Syrup),Shaken Iced Beverages,Tall,Specialty Cafe,12.5,100,0.0,0.0,24.0,100.0,Iced,Normal,None,Low,Shaken Iced Tazo® Tea Lemonade (With Classic Syrup) (Tall)
+SC170,Shaken Iced Tazo® Tea Lemonade (With Classic Syrup),Shaken Iced Beverages,Tall,Specialty Cafe,12.5,100,0.0,0.0,24.0,100.0,Iced,Normal,,Low,Shaken Iced Tazo® Tea Lemonade (With Classic Syrup) (Tall)
 SC171,Shaken Iced Tazo® Tea Lemonade (With Classic Syrup),Shaken Iced Beverages,Grande,Specialty Cafe,13.5,130,0.0,0.0,33.0,100.0,Iced,Normal,Standard Milk,Low,Shaken Iced Tazo® Tea Lemonade (With Classic Syrup) (Grande)
 SC172,Shaken Iced Tazo® Tea Lemonade (With Classic Syrup),Shaken Iced Beverages,Venti,Specialty Cafe,14.5,190,0.0,0.0,49.0,100.0,Iced,Normal,Standard Milk,Low,Shaken Iced Tazo® Tea Lemonade (With Classic Syrup) (Venti)
 SC173,Banana Chocolate Smoothie,Smoothies,Grande Nonfat Milk,Specialty Cafe,13.5,280,2.5,150.0,34.0,100.0,Blended,Normal,Nonfat Milk,Low,Banana Chocolate Smoothie (Grande Nonfat Milk)
@@ -241,23 +241,23 @@ SC239,Vanilla Bean (Without Whipped Cream),Frappuccino® Blended Crème,Tall Non
 SC240,Vanilla Bean (Without Whipped Cream),Frappuccino® Blended Crème,Whole Milk,Specialty Cafe,15.0,200,3.5,160.0,38.0,0.0,Blended,Normal,Whole Milk,Low,Vanilla Bean (Without Whipped Cream) (Whole Milk)
 SC241,Vanilla Bean (Without Whipped Cream),Frappuccino® Blended Crème,Soymilk,Specialty Cafe,15.0,180,1.5,160.0,35.0,0.0,Blended,Normal,Soy Milk,Low,Vanilla Bean (Without Whipped Cream) (Soymilk)
 SC242,Vanilla Bean (Without Whipped Cream),Frappuccino® Blended Crème,Grande Nonfat Milk,Specialty Cafe,16.5,240,0.1,230.0,55.0,0.0,Blended,Normal,Nonfat Milk,Low,Vanilla Bean (Without Whipped Cream) (Grande Nonfat Milk)
-KC001,Kopi O,Traditional Kopi,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,100.0,Hot,Normal,None,Medium,Black Coffee with Sugar
-KC002,Kopi,Traditional Kopi,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,100.0,Hot,Normal,None,Medium,Black Coffee with Condensed Milk
+KC001,Kopi O,Traditional Kopi,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,100.0,Hot,Normal,,Medium,Black Coffee with Sugar
+KC002,Kopi,Traditional Kopi,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,100.0,Hot,Normal,,Medium,Black Coffee with Condensed Milk
 KC003,Kopi C,Traditional Kopi,Hot | Normal | Evaporated Milk,Kopitiam Classic,3.9,118,3.5,19.0,16.0,100.0,Hot,Normal,Evaporated Milk,Medium,Black Coffee with Evaporated Milk
-KC004,Kopi Kosong,Traditional Kopi,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,100.0,Hot,Zero Sugar,None,High,Black Coffee without sugar or milk
-KC005,Kopi Gah Dai,Traditional Kopi,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,100.0,Hot,Extra Sugar,None,Medium,Black Coffee with extra condensed milk
+KC004,Kopi Kosong,Traditional Kopi,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,100.0,Hot,Zero Sugar,,High,Black Coffee without sugar or milk
+KC005,Kopi Gah Dai,Traditional Kopi,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,100.0,Hot,Extra Sugar,,Medium,Black Coffee with extra condensed milk
 KC006,Kopi Siew Dai,Traditional Kopi,Hot | Less Sugar | Condensed Milk,Kopitiam Classic,3.7,99,5.0,11.0,8.0,100.0,Hot,Less Sugar,Condensed Milk,Medium,Coffee with Condensed Milk but less sugar
-KC007,Kopi O Siew Dai,Traditional Kopi,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,100.0,Hot,Less Sugar,None,Medium,Black Coffee with less sugar
+KC007,Kopi O Siew Dai,Traditional Kopi,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,100.0,Hot,Less Sugar,,Medium,Black Coffee with less sugar
 KC008,Kopi Po,Traditional Kopi,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,70.0,Hot,Normal,Condensed Milk,Medium,Coffee with Condensed Milk but weaker (they add more water)
-KC009,Kopi O Po,Traditional Kopi,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,70.0,Hot,Normal,None,Medium,Black Coffee with Sugar but weaker (they add more water)
+KC009,Kopi O Po,Traditional Kopi,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,70.0,Hot,Normal,,Medium,Black Coffee with Sugar but weaker (they add more water)
 KC010,Kopi Gau,Traditional Kopi,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,140.0,Hot,Normal,Condensed Milk,High,Strong Coffee with Condensed Milk
-KC011,Kopi O Gau,Traditional Kopi,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,140.0,Hot,Normal,None,High,Strong Black Coffee with Sugar
+KC011,Kopi O Gau,Traditional Kopi,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,140.0,Hot,Normal,,High,Strong Black Coffee with Sugar
 KC012,Kopi Peng,Traditional Kopi,Iced | Normal | Condensed Milk,Kopitiam Classic,4.5,131,5.0,19.0,16.0,100.0,Iced,Normal,Condensed Milk,Medium,Iced Coffee with Condensed Milk
-KC013,Kopi O Peng,Traditional Kopi,Iced | Normal | None,Kopitiam Classic,4.0,88,0.2,19.0,16.0,100.0,Iced,Normal,None,Medium,Iced Black Coffee with sugar
+KC013,Kopi O Peng,Traditional Kopi,Iced | Normal | None,Kopitiam Classic,4.0,88,0.2,19.0,16.0,100.0,Iced,Normal,,Medium,Iced Black Coffee with sugar
 KC014,Kopi Gau Peng,Traditional Kopi,Iced | Normal | Condensed Milk,Kopitiam Classic,4.5,131,5.0,19.0,16.0,140.0,Iced,Normal,Condensed Milk,High,Strong Iced Coffee with Condensed Milk
-KC015,Kopi O Gau Peng,Traditional Kopi,Iced | Normal | None,Kopitiam Classic,4.0,88,0.2,19.0,16.0,140.0,Iced,Normal,None,High,Strong Black Coffee with Sugar
-KC016,Kopi Kosong Peng,Traditional Kopi,Iced | Zero Sugar | None,Kopitiam Classic,4.0,24,0.2,3.0,0.0,100.0,Iced,Zero Sugar,None,High,Iced black coffee without sugar
-KC017,Kopi Gau Kosong Peng,Traditional Kopi,Iced | Zero Sugar | None,Kopitiam Classic,4.0,24,0.2,3.0,0.0,140.0,Iced,Zero Sugar,None,High,Iced Strong Black coffee without Sugar or milk
+KC015,Kopi O Gau Peng,Traditional Kopi,Iced | Normal | None,Kopitiam Classic,4.0,88,0.2,19.0,16.0,140.0,Iced,Normal,,High,Strong Black Coffee with Sugar
+KC016,Kopi Kosong Peng,Traditional Kopi,Iced | Zero Sugar | None,Kopitiam Classic,4.0,24,0.2,3.0,0.0,100.0,Iced,Zero Sugar,,High,Iced black coffee without sugar
+KC017,Kopi Gau Kosong Peng,Traditional Kopi,Iced | Zero Sugar | None,Kopitiam Classic,4.0,24,0.2,3.0,0.0,140.0,Iced,Zero Sugar,,High,Iced Strong Black coffee without Sugar or milk
 KC018,Kopi Ga Dai,Traditional Kopi,Hot | Extra Sugar | Condensed Milk,Kopitiam Classic,3.7,163,5.0,27.0,24.0,100.0,Hot,Extra Sugar,Condensed Milk,Medium,Hot coffee with condensed milk and more sugar
 KC019,Kopi Po Siew Dai,Traditional Kopi,Hot | Less Sugar | Condensed Milk,Kopitiam Classic,3.7,99,5.0,11.0,8.0,70.0,Hot,Less Sugar,Condensed Milk,Medium,Hot coffee with condensed milk and lesser coffee powder and lesser sugar
 KC020,Kopi Po Ga Dai,Traditional Kopi,Hot | Extra Sugar | Condensed Milk,Kopitiam Classic,3.7,163,5.0,27.0,24.0,70.0,Hot,Extra Sugar,Condensed Milk,Medium,Hot coffee with condensed milk and lesser coffee powder and more sugar
@@ -272,12 +272,12 @@ KC028,Kopi C Po Ga Dai,Traditional Kopi,Hot | Extra Sugar | Evaporated Milk,Kopi
 KC029,Kopi C Gau Siew Dai,Traditional Kopi,Hot | Less Sugar | Evaporated Milk,Kopitiam Classic,3.9,86,3.5,11.0,8.0,140.0,Hot,Less Sugar,Evaporated Milk,High,Hot coffee with evaporated milk and more coffee powder and lesser sugar
 KC030,Kopi C Gau Ga Dai,Traditional Kopi,Hot | Extra Sugar | Evaporated Milk,Kopitiam Classic,3.9,150,3.5,27.0,24.0,140.0,Hot,Extra Sugar,Evaporated Milk,High,Hot coffee with evaporated milk and more coffee powder and more sugar
 KC031,Kopi C Kosong,Traditional Kopi,Hot | Zero Sugar | Evaporated Milk,Kopitiam Classic,3.9,54,3.5,3.0,0.0,100.0,Hot,Zero Sugar,Evaporated Milk,High,Hot coffee with evaporated milk only
-KC032,Kopi O Ga Dai,Traditional Kopi,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,100.0,Hot,Extra Sugar,None,Medium,Hot black coffee with more sugar
-KC033,Kopi O Po Siew Dai,Traditional Kopi,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,70.0,Hot,Less Sugar,None,Medium,Hot black coffee with lesser coffee powder and lesser sugar
-KC034,Kopi O Po Ga Dai,Traditional Kopi,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,70.0,Hot,Extra Sugar,None,Medium,Hot black coffee with lesser coffee powder and more sugar
-KC035,Kopi O Gau Siew Dai,Traditional Kopi,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,140.0,Hot,Less Sugar,None,High,Hot black coffee with more coffee powder and lesser sugar
-KC036,Kopi O Gau Ga Dai,Traditional Kopi,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,140.0,Hot,Extra Sugar,None,High,Hot black coffee with more coffee powder and more sugar
-KC037,Kopi O Kosong,Traditional Kopi,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,100.0,Hot,Zero Sugar,None,High,Hot black coffee without milk and sugar
+KC032,Kopi O Ga Dai,Traditional Kopi,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,100.0,Hot,Extra Sugar,,Medium,Hot black coffee with more sugar
+KC033,Kopi O Po Siew Dai,Traditional Kopi,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,70.0,Hot,Less Sugar,,Medium,Hot black coffee with lesser coffee powder and lesser sugar
+KC034,Kopi O Po Ga Dai,Traditional Kopi,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,70.0,Hot,Extra Sugar,,Medium,Hot black coffee with lesser coffee powder and more sugar
+KC035,Kopi O Gau Siew Dai,Traditional Kopi,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,140.0,Hot,Less Sugar,,High,Hot black coffee with more coffee powder and lesser sugar
+KC036,Kopi O Gau Ga Dai,Traditional Kopi,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,140.0,Hot,Extra Sugar,,High,Hot black coffee with more coffee powder and more sugar
+KC037,Kopi O Kosong,Traditional Kopi,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,100.0,Hot,Zero Sugar,,High,Hot black coffee without milk and sugar
 KC038,Teh,Traditional Teh,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,50.0,Hot,Normal,Condensed Milk,Low,Hot tea with condensed milk and sugar
 KC039,Teh Siew Dai,Traditional Teh,Hot | Less Sugar | Condensed Milk,Kopitiam Classic,3.7,99,5.0,11.0,8.0,50.0,Hot,Less Sugar,Condensed Milk,Low,Hot tea with condensed milk and lesser sugar
 KC040,Teh Ga Dai,Traditional Teh,Hot | Extra Sugar | Condensed Milk,Kopitiam Classic,3.7,163,5.0,27.0,24.0,50.0,Hot,Extra Sugar,Condensed Milk,Low,Hot tea with condensed milk and more sugar
@@ -289,30 +289,30 @@ KC045,Teh C Siew Dai,Traditional Teh,Hot | Less Sugar | Evaporated Milk,Kopitiam
 KC046,Teh C Ga Dai,Traditional Teh,Hot | Extra Sugar | Evaporated Milk,Kopitiam Classic,3.9,150,3.5,27.0,24.0,50.0,Hot,Extra Sugar,Evaporated Milk,Low,Hot tea with evaporated milk and more sugar
 KC047,Teh C Kosong,Traditional Teh,Hot | Zero Sugar | Evaporated Milk,Kopitiam Classic,3.9,54,3.5,3.0,0.0,50.0,Hot,Zero Sugar,Evaporated Milk,Low,Hot tea with evaporated milk only
 KC048,Teh C Tarik,Traditional Teh,Hot | Normal | Evaporated Milk,Kopitiam Classic,3.9,118,3.5,19.0,16.0,50.0,Hot,Normal,Evaporated Milk,Low,Pulled hot tea with evaporated milk and sugar
-KC049,Teh O,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,50.0,Hot,Normal,None,Low,Hot tea with sugar only
-KC050,Teh O Siew Dai,Traditional Teh,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,50.0,Hot,Less Sugar,None,Low,Hot tea with lesser sugar
-KC051,Teh O Ga Dai,Traditional Teh,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,50.0,Hot,Extra Sugar,None,Low,Hot tea with more sugar
-KC052,Teh O Kosong,Traditional Teh,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,50.0,Hot,Zero Sugar,None,Low,Hot tea without milk and sugar
-KC053,Teh O Tarik,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,50.0,Hot,Normal,None,Low,Pulled hot tea with sugar
-KC054,Tiao Her,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,None,Low,Chinese tea in tea bags
+KC049,Teh O,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,50.0,Hot,Normal,,Low,Hot tea with sugar only
+KC050,Teh O Siew Dai,Traditional Teh,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,50.0,Hot,Less Sugar,,Low,Hot tea with lesser sugar
+KC051,Teh O Ga Dai,Traditional Teh,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,50.0,Hot,Extra Sugar,,Low,Hot tea with more sugar
+KC052,Teh O Kosong,Traditional Teh,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,50.0,Hot,Zero Sugar,,Low,Hot tea without milk and sugar
+KC053,Teh O Tarik,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,50.0,Hot,Normal,,Low,Pulled hot tea with sugar
+KC054,Tiao Her,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,,Low,Chinese tea in tea bags
 KC055,Tut Kiu,Local Specialty,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,40.0,Hot,Normal,Condensed Milk,Low,Hot Milo with condensed milk and sugar
-KC056,Milo Kosong,Malt Beverage,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,25.0,Hot,Zero Sugar,None,Low,Hot Milo without milk and sugar
+KC056,Milo Kosong,Malt Beverage,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,25.0,Hot,Zero Sugar,,Low,Hot Milo without milk and sugar
 KC057,Milo Dinosaur,Malt Beverage,Iced | Extra Sugar | Condensed Milk,Kopitiam Classic,5.5,280,7.0,48.0,36.0,25.0,Iced,Extra Sugar,Condensed Milk,Low,"Iced Milo with condensed milk and sugar, and undissolved Milo powder as topping"
 KC058,Tak Kiu,Malt Beverage,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,25.0,Hot,Normal,Condensed Milk,Low,Milo
-KC059,Tiao He,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,None,Low,Chinese Tea
-KC060,Diao Yu,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,None,Low,Chinese Tea
-KC061,Tai Ga Ho,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Horlicks
-KC062,Micheal Jackson,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Chin Chow and Soy Bean Milk
-KC063,Clementi,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,None,Low,Lemon Tea
-KC064,Da Jia Hao,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Horlicks
-KC065,Kup Poh,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Kickapoo
-KC066,Ji Ba Ho,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,100 plus
-KC067,Ah Huey,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,None,Low,Chrysanthemum Tea
-KC068,Buay Si Gor Lak,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Pepsi Cola
-KC069,Lao Hor,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Tiger Beer
-KC070,Orh Gao,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Guinness Stout
-KC071,Ang Ji Gao,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Guinness Stout
-KC072,Beer Gao,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Lager with Guiness Stout
+KC059,Tiao He,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,,Low,Chinese Tea
+KC060,Diao Yu,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,,Low,Chinese Tea
+KC061,Tai Ga Ho,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Horlicks
+KC062,Micheal Jackson,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Chin Chow and Soy Bean Milk
+KC063,Clementi,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,,Low,Lemon Tea
+KC064,Da Jia Hao,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Horlicks
+KC065,Kup Poh,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Kickapoo
+KC066,Ji Ba Ho,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,100 plus
+KC067,Ah Huey,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,,Low,Chrysanthemum Tea
+KC068,Buay Si Gor Lak,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Pepsi Cola
+KC069,Lao Hor,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Tiger Beer
+KC070,Orh Gao,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Guinness Stout
+KC071,Ang Ji Gao,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Guinness Stout
+KC072,Beer Gao,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Lager with Guiness Stout
 KC073,Teh Gao,Traditional Teh,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,50.0,Hot,Normal,Condensed Milk,Low,Thicker tea. Less water is added to the initial robust brew for a heavier taste.
 KC074,Teh Poh,Traditional Teh,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,50.0,Hot,Normal,Condensed Milk,Low,Thinner tea. More water is added to dilute the beverage.
 KC075,Teh Tiloh,Traditional Teh,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,50.0,Hot,Normal,Condensed Milk,Low,"Heaviest, purest version of tea with no water added at all to the initial brew"
@@ -326,37 +326,37 @@ KC082,Teh cino,Traditional Teh,Hot | Normal | Condensed Milk,Kopitiam Classic,3.
 KC083,Teh titlo,Traditional Teh,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,50.0,Hot,Normal,Condensed Milk,Low,Very strong tea with condensed milk and no water
 KC084,Teh C kah dai,Traditional Teh,Hot | Normal | Evaporated Milk,Kopitiam Classic,3.9,118,3.5,19.0,16.0,50.0,Hot,Normal,Evaporated Milk,Low,Tea with evaporated milk with more milk and sugar
 KC085,Teh C siu dai,Traditional Teh,Hot | Less Sugar | Evaporated Milk,Kopitiam Classic,3.9,86,3.5,11.0,8.0,50.0,Hot,Less Sugar,Evaporated Milk,Low,Tea with evaporated milk with less milk and less sugar
-KC086,Teh O kah dai,Traditional Teh,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,50.0,Hot,Extra Sugar,None,Low,Tea without milk but with more sugar
-KC087,Teh O siu dai,Traditional Teh,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,50.0,Hot,Less Sugar,None,Low,Tea without milk with less sugar
-KC088,Teh O ice limau,Traditional Teh,Iced | Normal | None,Kopitiam Classic,4.0,88,0.2,19.0,16.0,50.0,Iced,Normal,None,Low,Home brewed iced lemon tea
+KC086,Teh O kah dai,Traditional Teh,Hot | Extra Sugar | None,Kopitiam Classic,3.2,120,0.2,27.0,24.0,50.0,Hot,Extra Sugar,,Low,Tea without milk but with more sugar
+KC087,Teh O siu dai,Traditional Teh,Hot | Less Sugar | None,Kopitiam Classic,3.2,56,0.2,11.0,8.0,50.0,Hot,Less Sugar,,Low,Tea without milk with less sugar
+KC088,Teh O ice limau,Traditional Teh,Iced | Normal | None,Kopitiam Classic,4.0,88,0.2,19.0,16.0,50.0,Iced,Normal,,Low,Home brewed iced lemon tea
 KC089,Teh Alia,Traditional Teh,Hot | Normal | Condensed Milk,Kopitiam Classic,3.7,131,5.0,19.0,16.0,50.0,Hot,Normal,Condensed Milk,Low,Tea with condensed milk with ginger
 KC090,Bandung,Local Specialty,Hot | Normal | Evaporated Milk,Kopitiam Classic,3.9,118,3.5,19.0,16.0,40.0,Hot,Normal,Evaporated Milk,Low,Rose syrup and evaporated milk drink
-KC091,Ice kosong,Local Specialty,Iced | Zero Sugar | None,Kopitiam Classic,4.0,26,0.5,3.0,0.0,40.0,Iced,Zero Sugar,None,Low,Iced water
-KC092,Horlick Sio,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Hot Horlicks
-KC093,Horlick Peng,Local Specialty,Iced | Normal | None,Kopitiam Classic,4.0,90,0.5,19.0,16.0,40.0,Iced,Normal,None,Low,Ice Horlicks
-KC094,Horlick dinosaur,Local Specialty,Iced | Extra Sugar | None,Kopitiam Classic,5.5,280,2.5,36.0,24.0,40.0,Iced,Extra Sugar,None,Low,Hot Horlicks with extra scoop of undissolved Horlicks powder on top
+KC091,Ice kosong,Local Specialty,Iced | Zero Sugar | None,Kopitiam Classic,4.0,26,0.5,3.0,0.0,40.0,Iced,Zero Sugar,,Low,Iced water
+KC092,Horlick Sio,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Hot Horlicks
+KC093,Horlick Peng,Local Specialty,Iced | Normal | None,Kopitiam Classic,4.0,90,0.5,19.0,16.0,40.0,Iced,Normal,,Low,Ice Horlicks
+KC094,Horlick dinosaur,Local Specialty,Iced | Extra Sugar | None,Kopitiam Classic,5.5,280,2.5,36.0,24.0,40.0,Iced,Extra Sugar,,Low,Hot Horlicks with extra scoop of undissolved Horlicks powder on top
 KC095,Tak Kiu Peng,Malt Beverage,Iced | Normal | Condensed Milk,Kopitiam Classic,4.5,131,5.0,19.0,16.0,25.0,Iced,Normal,Condensed Milk,Low,Iced Milo
-KC096,Tiau Herr,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,None,Low,Tea served with the teabag.
+KC096,Tiau Herr,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,,Low,Tea served with the teabag.
 KC097,Milo Peng,Malt Beverage,Iced | Normal | Condensed Milk,Kopitiam Classic,4.5,131,5.0,19.0,16.0,25.0,Iced,Normal,Condensed Milk,Low,Ice Milo
-KC098,Tiau Yu,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,None,Low,Tea served with the teabag.
-KC099,Teh O Gau,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,50.0,Hot,Normal,None,Low,Stronger tea concentration
+KC098,Tiau Yu,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,50.0,Hot,Normal,,Low,Tea served with the teabag.
+KC099,Teh O Gau,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,50.0,Hot,Normal,,Low,Stronger tea concentration
 KC100,Teh Peng,Traditional Teh,Iced | Normal | Condensed Milk,Kopitiam Classic,4.5,131,5.0,19.0,16.0,50.0,Iced,Normal,Condensed Milk,Low,Iced tea with condensed milk
-KC101,Teh O Poh,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,50.0,Hot,Normal,None,Low,Weaker tea concentration with sugar
+KC101,Teh O Poh,Traditional Teh,Hot | Normal | None,Kopitiam Classic,3.2,88,0.2,19.0,16.0,50.0,Hot,Normal,,Low,Weaker tea concentration with sugar
 KC102,Teh C Peng Dapao,Traditional Teh,Iced | Normal | Evaporated Milk,Kopitiam Classic,4.7,118,3.5,19.0,16.0,50.0,Iced,Normal,Evaporated Milk,Low,"Iced tea with evaporated milk and sugar, takeaway"
 KC103,Kopi siu dai,Traditional Kopi,Hot | Less Sugar | Condensed Milk,Kopitiam Classic,3.7,99,5.0,11.0,8.0,100.0,Hot,Less Sugar,Condensed Milk,Medium,coffee with less sugar
 KC104,Teh see,Traditional Teh,Hot | Normal | Evaporated Milk,Kopitiam Classic,3.9,118,3.5,19.0,16.0,50.0,Hot,Normal,Evaporated Milk,Low,tea with evaporated milk
-KC105,Tat kiu,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Milo
-KC106,Michael Jackson,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,None,Low,Soya bean milk mixed with grass jelly
-KC107,Kopi O kosong gau,Traditional Kopi,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,140.0,Hot,Zero Sugar,None,High,a strong brew of coffee without sugar or milk
+KC105,Tat kiu,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Milo
+KC106,Michael Jackson,Local Specialty,Hot | Normal | None,Kopitiam Classic,3.2,90,0.5,19.0,16.0,40.0,Hot,Normal,,Low,Soya bean milk mixed with grass jelly
+KC107,Kopi O kosong gau,Traditional Kopi,Hot | Zero Sugar | None,Kopitiam Classic,3.2,24,0.2,3.0,0.0,140.0,Hot,Zero Sugar,,High,a strong brew of coffee without sugar or milk
 KC108,Teh gah dai,Traditional Teh,Hot | Extra Sugar | Condensed Milk,Kopitiam Classic,3.7,163,5.0,27.0,24.0,50.0,Hot,Extra Sugar,Condensed Milk,Low,tea with milk and more sugar
 KC109,Cham,Local Mix,Hot | Normal | Condensed Milk,Kopitiam Classic,4.2,131,5.0,19.0,16.0,110.0,Hot,Normal,Condensed Milk,Medium,Coffee and Tea mix with condensed milk and sugar
 KC110,Cham Peng,Local Mix,Iced | Normal | Condensed Milk,Kopitiam Classic,5.0,131,5.0,19.0,16.0,110.0,Iced,Normal,Condensed Milk,Medium,Iced Coffee and Tea mix with condensed milk and sugar
-KC111,Cham O,Local Mix,Hot | Normal | None,Kopitiam Classic,3.7,88,0.2,19.0,16.0,110.0,Hot,Normal,None,Medium,"Coffee and Tea mix with sugar only, no milk"
-KC112,Cham O Peng,Local Mix,Iced | Normal | None,Kopitiam Classic,4.5,88,0.2,19.0,16.0,110.0,Iced,Normal,None,Medium,"Iced Coffee and Tea mix with sugar only, no milk"
+KC111,Cham O,Local Mix,Hot | Normal | None,Kopitiam Classic,3.7,88,0.2,19.0,16.0,110.0,Hot,Normal,,Medium,"Coffee and Tea mix with sugar only, no milk"
+KC112,Cham O Peng,Local Mix,Iced | Normal | None,Kopitiam Classic,4.5,88,0.2,19.0,16.0,110.0,Iced,Normal,,Medium,"Iced Coffee and Tea mix with sugar only, no milk"
 KC113,Cham C,Local Mix,Hot | Normal | Evaporated Milk,Kopitiam Classic,4.4,118,3.5,19.0,16.0,110.0,Hot,Normal,Evaporated Milk,Medium,Coffee and Tea mix with evaporated milk and sugar
 KC114,Cham C Peng,Local Mix,Iced | Normal | Evaporated Milk,Kopitiam Classic,5.2,118,3.5,19.0,16.0,110.0,Iced,Normal,Evaporated Milk,Medium,Iced Coffee and Tea mix with evaporated milk and sugar
-KC115,Cham Kosong,Local Mix,Hot | Zero Sugar | None,Kopitiam Classic,3.7,24,0.2,3.0,0.0,110.0,Hot,Zero Sugar,None,Medium,Coffee and Tea mix without milk or sugar
-KC116,Cham Peng Kosong,Local Mix,Iced | Zero Sugar | None,Kopitiam Classic,4.5,24,0.2,3.0,0.0,110.0,Iced,Zero Sugar,None,Medium,Iced Coffee and Tea mix without milk or sugar
+KC115,Cham Kosong,Local Mix,Hot | Zero Sugar | None,Kopitiam Classic,3.7,24,0.2,3.0,0.0,110.0,Hot,Zero Sugar,,Medium,Coffee and Tea mix without milk or sugar
+KC116,Cham Peng Kosong,Local Mix,Iced | Zero Sugar | None,Kopitiam Classic,4.5,24,0.2,3.0,0.0,110.0,Iced,Zero Sugar,,Medium,Iced Coffee and Tea mix without milk or sugar
 KC117,Cham Siew Dai,Local Mix,Hot | Less Sugar | Condensed Milk,Kopitiam Classic,4.2,99,5.0,11.0,8.0,110.0,Hot,Less Sugar,Condensed Milk,Medium,Coffee and Tea mix with condensed milk and less sugar
 KC118,Cham Peng Siew Dai,Local Mix,Iced | Less Sugar | Condensed Milk,Kopitiam Classic,5.0,99,5.0,11.0,8.0,110.0,Iced,Less Sugar,Condensed Milk,Medium,Iced Coffee and Tea mix with condensed milk and less sugar
 KC119,Neslo,Local Mix,Hot | Normal | Condensed Milk,Kopitiam Classic,4.2,131,5.0,19.0,16.0,70.0,Hot,Normal,Condensed Milk,Low,Nescafe and Milo combination with condensed milk
@@ -372,8 +372,8 @@ KC128,Milo Godzilla,Malt Beverage,Iced | Extra Sugar | Condensed Milk,Kopitiam C
 KC129,Kopi C Peng,Traditional Kopi,Iced | Normal | Evaporated Milk,Kopitiam Classic,4.7,118,3.5,19.0,16.0,100.0,Iced,Normal,Evaporated Milk,Medium,Iced coffee with evaporated milk and sugar
 KC130,Kopi C Peng Siew Dai,Traditional Kopi,Iced | Less Sugar | Evaporated Milk,Kopitiam Classic,4.7,86,3.5,11.0,8.0,100.0,Iced,Less Sugar,Evaporated Milk,Medium,Iced coffee with evaporated milk and less sugar
 KC131,Kopi C Peng Kosong,Traditional Kopi,Iced | Zero Sugar | Evaporated Milk,Kopitiam Classic,4.7,54,3.5,3.0,0.0,100.0,Iced,Zero Sugar,Evaporated Milk,High,Iced coffee with evaporated milk and no sugar
-KC132,Kopi O Kosong Peng,Traditional Kopi,Iced | Zero Sugar | None,Kopitiam Classic,4.0,24,0.2,3.0,0.0,100.0,Iced,Zero Sugar,None,High,Iced black coffee without milk and sugar
+KC132,Kopi O Kosong Peng,Traditional Kopi,Iced | Zero Sugar | None,Kopitiam Classic,4.0,24,0.2,3.0,0.0,100.0,Iced,Zero Sugar,,High,Iced black coffee without milk and sugar
 KC133,Teh C Peng,Traditional Teh,Iced | Normal | Evaporated Milk,Kopitiam Classic,4.7,118,3.5,19.0,16.0,50.0,Iced,Normal,Evaporated Milk,Low,Iced tea with evaporated milk and sugar
 KC134,Teh C Peng Siew Dai,Traditional Teh,Iced | Less Sugar | Evaporated Milk,Kopitiam Classic,4.7,86,3.5,11.0,8.0,50.0,Iced,Less Sugar,Evaporated Milk,Low,Iced tea with evaporated milk and less sugar
 KC135,Teh Tarik Peng,Traditional Teh,Iced | Normal | Condensed Milk,Kopitiam Classic,4.5,131,5.0,19.0,16.0,50.0,Iced,Normal,Condensed Milk,Low,Iced frothy pulled tea with condensed milk
-KC136,Teh O Peng Kosong,Traditional Teh,Iced | Zero Sugar | None,Kopitiam Classic,4.0,24,0.2,3.0,0.0,50.0,Iced,Zero Sugar,None,Low,Iced black tea without sugar or milk
+KC136,Teh O Peng Kosong,Traditional Teh,Iced | Zero Sugar | None,Kopitiam Classic,4.0,24,0.2,3.0,0.0,50.0,Iced,Zero Sugar,,Low,Iced black tea without sugar or milk

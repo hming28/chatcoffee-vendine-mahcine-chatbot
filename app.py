@@ -1,41 +1,50 @@
 """
-app.py - RojakBrew Unmanned Smart Kiosk Backend Server
-Powered by Scikit-Learn Machine Learning Models + Unified Coffee Knowledge Base
+app.py - ChatCoffee Unmanned Smart Kiosk Backend Server
+Powered by Supervised ML Intent Classification + Unified Coffee Knowledge Base
 """
 
 import os
 import re
 import json
-import joblib
+import math
+import asyncio
+from collections import Counter
+from typing import Optional, Dict, Any
 import pandas as pd
 import numpy as np
-from typing import Optional, Dict, Any
-from fastapi import FastAPI, Request, File, UploadFile, Response, Form
+from fastapi import FastAPI, File, UploadFile, Response, Form
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
-import edge_tts
+
+try:
+    import joblib
+except ImportError:
+    joblib = None
+
+try:
+    import edge_tts
+except ImportError:
+    edge_tts = None
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-app = FastAPI(title="RojakBrew NLP Kiosk API", version="2.0")
+app = FastAPI(title="ChatCoffee NLP Kiosk API", version="2.1")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # -------------------------------------------------------------
-# 1. Load ML Artifacts & Knowledge Base Datasets
+# 1. Load ML Artifacts, Slang Dictionary & Knowledge Base
 # -------------------------------------------------------------
-MODEL_PATH = os.path.join(BASE_DIR, "models", "chatcoffee_intent_classifier.joblib")
-if not os.path.exists(MODEL_PATH):
-    MODEL_PATH = os.path.join(BASE_DIR, "models", "rojak_intent_classifier.joblib")
+WEB_MODEL_PATH = os.path.join(BASE_DIR, "models", "chatcoffee_model_web.json")
+JOBLIB_MODEL_PATH = os.path.join(BASE_DIR, "models", "chatcoffee_intent_classifier.joblib")
 SLANG_PATH = os.path.join(BASE_DIR, "NLP_Datasets", "shortform-dict.json")
 if not os.path.exists(SLANG_PATH):
     SLANG_PATH = os.path.join(BASE_DIR, "shortform-dict.json")
@@ -46,30 +55,26 @@ if not os.path.exists(KB_PATH):
 if not os.path.exists(KB_PATH):
     KB_PATH = os.path.join(BASE_DIR, "data", "unified_coffee_kb.csv")
 
-# Load model
-if os.path.exists(MODEL_PATH):
-    ml_artifact = joblib.load(MODEL_PATH)
-    tfidf_vec = ml_artifact["vectorizer"]
-    intent_model = ml_artifact["model"]
-    classes = ml_artifact["classes"]
-    print(f"[ML Pipeline] Loaded champion intent model from {MODEL_PATH}")
-else:
-    raise FileNotFoundError(f"Model not found at {MODEL_PATH}. Run train_and_export_model.py first.")
+GOLD_PATH = os.path.join(BASE_DIR, "NLP_Datasets", "chatcoffee_gold_850.csv")
+if not os.path.exists(GOLD_PATH):
+    GOLD_PATH = os.path.join(BASE_DIR, "chatcoffee_gold_850.csv")
 
-# Load slang dictionary
-slang_dict = {}
+# Load & cleanly flatten slang dictionary (exclude metadata, intensifiers, and Kopitiam 'kau')
+slang_dict: Dict[str, str] = {}
 if os.path.exists(SLANG_PATH):
     with open(SLANG_PATH, "r", encoding="utf-8") as f:
         raw_slang = json.load(f)
         if isinstance(raw_slang, dict):
             for k, v in raw_slang.items():
-                if isinstance(v, dict) and k != 'intensifiers':
-                    slang_dict.update(v)
-                elif isinstance(v, str):
-                    slang_dict[k] = v
-        else:
-            slang_dict = raw_slang
-    print(f"[Preprocess] Loaded {len(slang_dict)} slang normalization rules")
+                if k in ("metadata", "intensifiers"):
+                    continue
+                if isinstance(v, dict):
+                    for sk, sv in v.items():
+                        if isinstance(sv, str) and sk.lower() != "kau":
+                            slang_dict[sk.lower()] = sv.lower()
+                elif isinstance(v, str) and k.lower() != "kau":
+                    slang_dict[k.lower()] = v.lower()
+    print(f"[Preprocess] Loaded {len(slang_dict)} clean slang normalization rules")
 
 # Load Knowledge Base
 df_kb = pd.DataFrame()
@@ -77,8 +82,44 @@ if os.path.exists(KB_PATH):
     df_kb = pd.read_csv(KB_PATH)
     print(f"[Knowledge Base] Loaded {len(df_kb)} beverage records from {KB_PATH}")
 
+dataset_rows_count = 0
+if os.path.exists(GOLD_PATH):
+    try:
+        dataset_rows_count = len(pd.read_csv(GOLD_PATH))
+    except Exception:
+        dataset_rows_count = 0
+
+# Load ML Model (prefer synced chatcoffee_model_web.json for 100% frontend/backend parity, fallback to joblib)
+web_ml_model = None
+tfidf_vec = None
+intent_model = None
+classes = []
+model_name_str = "LogisticRegression (TF-IDF N-Gram 1-2, Dual-Script CJK)"
+
+if os.path.exists(WEB_MODEL_PATH):
+    with open(WEB_MODEL_PATH, "r", encoding="utf-8") as f:
+        web_ml_model = json.load(f)
+    classes = list(web_ml_model["classes"])
+    model_name_str = web_ml_model.get("model_name", model_name_str)
+    if isinstance(web_ml_model.get("slang_dict"), dict):
+        # Merge only flat string entries
+        for sk, sv in web_ml_model["slang_dict"].items():
+            if isinstance(sv, str) and sk.lower() != "kau":
+                slang_dict.setdefault(sk.lower(), sv.lower())
+    print(f"[ML Pipeline] Loaded dual-script JSON model from {WEB_MODEL_PATH}")
+elif joblib is not None and os.path.exists(JOBLIB_MODEL_PATH):
+    ml_artifact = joblib.load(JOBLIB_MODEL_PATH)
+    tfidf_vec = ml_artifact["vectorizer"]
+    intent_model = ml_artifact["model"]
+    classes = list(ml_artifact.get("classes") or ml_artifact.get("intent_labels") or getattr(intent_model, "classes_", []))
+    model_name_str = ml_artifact.get("model_name", model_name_str)
+    print(f"[ML Pipeline] Loaded joblib intent model from {JOBLIB_MODEL_PATH}")
+else:
+    raise FileNotFoundError(f"No model found at {WEB_MODEL_PATH} or {JOBLIB_MODEL_PATH}.")
+
+
 # -------------------------------------------------------------
-# 2. Preprocessing & Entity Extraction (Dual-Script NER)
+# 2. Preprocessing, ML Inference & Dual-Script NER
 # -------------------------------------------------------------
 def clean_text(text: str) -> str:
     if not isinstance(text, str):
@@ -90,10 +131,54 @@ def clean_text(text: str) -> str:
     t = re.sub(r"[^\w\s\u4e00-\u9fff]", " ", t)
     return re.sub(r"\s+", " ", t).strip()
 
+
+def predict_intent_ml(c_text: str):
+    if web_ml_model is not None:
+        vocab = web_ml_model["vocabulary"]
+        idf = np.asarray(web_ml_model["idf"], dtype=np.float64)
+        coef = np.asarray(web_ml_model["coef"], dtype=np.float64)
+        intercept = np.asarray(web_ml_model["intercept"], dtype=np.float64)
+        use_sublinear = web_ml_model.get("sublinear_tf", True)
+
+        spaced = re.sub(r"([\u4e00-\u9fff])", r" \1 ", c_text)
+        toks = [w for w in spaced.split() if len(w) >= 1]
+        ngrams = list(toks) + [f"{toks[i]} {toks[i+1]}" for i in range(len(toks) - 1)]
+        cnts = Counter(ng for ng in ngrams if ng in vocab)
+
+        vec = np.zeros(len(idf), dtype=np.float64)
+        for ng, cnt in cnts.items():
+            idx = vocab[ng]
+            tf = (1.0 + math.log(cnt)) if use_sublinear else float(cnt)
+            vec[idx] = tf * idf[idx]
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec /= norm
+
+        logits = coef @ vec + intercept
+        logits -= np.max(logits)
+        exp_l = np.exp(logits)
+        probs = exp_l / np.sum(exp_l)
+        best_idx = int(np.argmax(probs))
+        pred = classes[best_idx]
+        prob_dict = {c: float(round(p, 4)) for c, p in zip(classes, probs)}
+        return pred, float(round(probs[best_idx], 4)), prob_dict
+
+    X_vec = tfidf_vec.transform([c_text])
+    pred = intent_model.predict(X_vec)[0]
+    if hasattr(intent_model, "predict_proba"):
+        probs = intent_model.predict_proba(X_vec)[0]
+        prob_dict = {c: float(round(p, 4)) for c, p in zip(classes, probs)}
+        conf = float(round(probs[list(classes).index(pred)], 4))
+    else:
+        prob_dict = {c: (1.0 if c == pred else 0.0) for c in classes}
+        conf = 1.0
+    return pred, conf, prob_dict
+
+
 def extract_slots(text: str) -> Dict[str, str]:
     t_low = text.lower()
-    slots = {}
-    
+    slots: Dict[str, str] = {}
+
     # 1. Base Drinks
     if (
         "柠檬茶" in text or "檸檬茶" in text or
@@ -117,19 +202,27 @@ def extract_slots(text: str) -> Dict[str, str]:
     elif "奶茶" in text or "茶" in text or re.search(r"\b(?:teh|tea)\b", t_low):
         slots["base_drink"] = "Teh"
 
-    # 2. Temperature
-    if (
+    # 2. Temperature & Ice/Warmth Modifiers
+    if "温" in text or re.search(r"\b(?:suam|warm)\b", t_low):
+        slots["temperature"] = "Hot"
+        slots["temp_detail"] = "Warm"
+    elif "热" in text or "熱" in text or re.search(r"\b(?:panas|hot)\b", t_low):
+        slots["temperature"] = "Hot"
+        slots["temp_detail"] = "Hot"
+    elif (
         "冰" in text or "冻" in text or "凍" in text or "冷" in text or
         re.search(r"\b(?:peng|ping|ice|iced|ais|sejuk|dingin|cold)\b", t_low)
     ):
         slots["temperature"] = "Iced"
-    elif (
-        "热" in text or "熱" in text or "温" in text or
-        re.search(r"\b(?:panas|hot|suam|warm)\b", t_low)
-    ):
-        slots["temperature"] = "Hot"
 
-    # 3. Sweetness
+    if "去冰" in text or "走冰" in text or "无冰" in text or re.search(r"\b(?:kosong ais|tanpa ais|no ice|tak nak ais)\b", t_low):
+        slots["temperature"] = "Iced"
+        slots["ice_level"] = "No Ice"
+    elif "少冰" in text or "微冰" in text or re.search(r"\b(?:kurang ais|less ice|sikit ais|tak nak banyak ais)\b", t_low):
+        slots["temperature"] = "Iced"
+        slots["ice_level"] = "Less Ice"
+
+    # 3. Sweetness (tightened to avoid 'banyak ais' / 'sedikit ais' false positives)
     if (
         "无糖" in text or "無糖" in text or "走糖" in text or
         re.search(r"\b(?:kosong|zero sugar|no sugar|tanpa gula|zero)\b|\b0\s*%", t_low)
@@ -137,12 +230,12 @@ def extract_slots(text: str) -> Dict[str, str]:
         slots["sweetness_level"] = "Zero Sugar"
     elif (
         "少糖" in text or "微糖" in text or "少甜" in text or "半糖" in text or
-        re.search(r"\b(?:siu dai|siew dai|less sugar|kurang manis|sedikit|half sugar|less sweet)\b|\b(?:50|30|25)\s*%", t_low)
+        re.search(r"\b(?:siu dai|siew dai|less sugar|kurang manis|sedikit manis|sedikit gula|half sugar|less sweet)\b|\b(?:50|30|25)\s*%", t_low)
     ):
         slots["sweetness_level"] = "Less Sugar"
     elif (
         "多糖" in text or "加糖" in text or "多甜" in text or
-        re.search(r"\b(?:gah dai|ga dai|extra sweet|lebih manis|banyak|extra sugar)\b|\b120\s*%", t_low)
+        re.search(r"\b(?:gah dai|ga dai|extra sweet|lebih manis|banyak manis|banyak gula|extra sugar)\b|\b120\s*%", t_low)
     ):
         slots["sweetness_level"] = "Extra Sugar"
     elif (
@@ -151,48 +244,102 @@ def extract_slots(text: str) -> Dict[str, str]:
     ):
         slots["sweetness_level"] = "Normal"
 
-    # 4. Milk Type
-    if (
-        "淡奶" in text or "炼奶" in text or "花奶" in text or
-        re.search(r"\b(?:kopi c|teh c|cham c|neslo c)\b|\b(?:c|si|evaporated|susu sejat)\b", t_low)
+    # 4. Milk Type (Teh O Limau & Americano locked to None; 炼奶 correctly mapped to Condensed Milk)
+    if slots.get("base_drink") in ("Teh O Limau", "Americano"):
+        slots["milk_type"] = "None"
+    elif (
+        "淡奶" in text or "花奶" in text or
+        re.search(r"\b(?:kopi c|teh c|cham c|neslo c)\b|\b(?:evaporated|susu sejat|susu cair)\b", t_low)
     ):
         slots["milk_type"] = "Evaporated Milk"
     elif (
         "乌" in text or "黑咖啡" in text or "不加奶" in text or "不要奶" in text or "不用奶" in text or
-        re.search(r"\b(?:kopi o|teh o|cham o|milo o|kopi all|teh all|milo all)\b|\b(?:o|kosong milk|no milk|tanpa susu|black|tak perlu|tak payah|tak nak susu|tak mau susu)\b", t_low) or
+        re.search(r"\b(?:kopi o|teh o|cham o|milo o)\b|\b(?:kosong milk|no milk|tanpa susu|black|tak perlu susu|tak payah susu|tak nak susu|tak mau susu)\b", t_low) or
         (re.search(r"\bkosong\b", t_low) and not re.search(r"\b(?:susu|condensed|evaporated|c|tarik|biasa)\b", t_low))
     ):
         slots["milk_type"] = "None"
     elif (
-        "奶" in text or
-        re.search(r"\b(?:condensed|susu pekat|tarik|milk|susu)\b", t_low)
+        "炼奶" in text or "炼乳" in text or "普通奶" in text or "正常奶" in text or "拉茶" in text or
+        re.search(r"\b(?:condensed|susu pekat|tarik|susu biasa|normal milk)\b", t_low)
     ):
         slots["milk_type"] = "Condensed Milk"
 
-    # 5. Serving Type
-    if (
-        "打包" in text or "带走" in text or "外带" in text or
-        re.search(r"\b(?:tapau|bungkus|takeaway|take away|take out|pack)\b", t_low)
-    ):
-        slots["serving_type"] = "Takeaway"
-    elif (
-        "堂食" in text or "这里喝" in text or "内用" in text or
-        re.search(r"\b(?:dine in|minum sini|sini|makan sini)\b", t_low)
-    ):
-        slots["serving_type"] = "Dine In"
-
     return slots
 
+
+def lookup_price_and_nutrition(state: Dict[str, Any]) -> Dict[str, Any]:
+    base_prices = {
+        "Cham": 4.20, "White Coffee": 4.30, "Neslo": 4.20, "Milo": 3.20,
+        "Kopi": 3.20, "Teh": 3.20, "Teh O Limau": 3.20, "Americano": 5.00
+    }
+    base = state.get("base_drink") or "Kopi"
+    temp = state.get("temperature")
+    milk = state.get("milk_type")
+    sweet = state.get("sweetness_level")
+
+    price = base_prices.get(base, 3.70)
+    if base not in ("Teh O Limau", "Americano"):
+        if milk == "Condensed Milk" and base in ("Kopi", "Teh", "Milo"):
+            price += 0.50
+        elif milk == "Evaporated Milk":
+            price += 0.70
+    if temp == "Iced":
+        price += 0.80
+
+    calories, sugars_g = 99, 12.0
+    if not df_kb.empty:
+        sub = df_kb[df_kb["drink_name"].str.contains(re.escape(base), case=False, na=False)]
+        if temp:
+            t_sub = sub[sub["temperature"].str.lower() == temp.lower()]
+            if not t_sub.empty:
+                sub = t_sub
+        if sweet:
+            s_sub = sub[sub["sweetness_level"].str.lower() == sweet.lower()]
+            if not s_sub.empty:
+                sub = s_sub
+        if not sub.empty:
+            row = sub.iloc[0]
+            calories = int(row["calories"]) if pd.notna(row["calories"]) else calories
+            sugars_g = float(row["sugars_g"]) if pd.notna(row["sugars_g"]) else sugars_g
+
+    return {"price_rm": round(price, 2), "calories": calories, "sugars_g": sugars_g}
+
+
+def query_healthy_drinks_from_kb(is_zh: bool) -> str:
+    if not df_kb.empty:
+        kopitiam = df_kb[
+            (df_kb["channel"].str.contains("Kopitiam", case=False, na=False)) &
+            (df_kb["sugars_g"] <= 8)
+        ].sort_values(["calories", "sugars_g"]).drop_duplicates(subset=["drink_name"]).head(3)
+        if not kopitiam.empty:
+            items_txt = [
+                f"{r['drink_name']} ({int(r['calories'])} kcal, {r['sugars_g']:g}g sugar, RM {float(r['price_rm']):.2f})"
+                for _, r in kopitiam.iterrows()
+            ]
+            joined = "、".join(items_txt) if is_zh else ", ".join(items_txt)
+            return (
+                f"健康低卡推荐（来自营养知识库）：{joined}。需要为您点哪一杯？"
+                if is_zh else
+                f"Pilihan sihat & rendah kalori (KB Nutrisi): {joined}. Nak saya siapkan yang mana?"
+            )
+    return (
+        "健康推荐：Kopi O Kosong（24 kcal，0g 糖，RM 3.20）或 Iced Americano（10 kcal，0g 糖，RM 5.80）！需要为您来一杯吗？"
+        if is_zh else
+        "Untuk pilihan sihat & rendah kalori, kami cadangkan Kopi O Kosong (24 kcal, 0g gula, RM 3.20) atau Iced Americano (10 kcal, RM 5.80)! Nak saya siapkan sekarang?"
+    )
+
+
 # -------------------------------------------------------------
-# 3. Request Schema
+# 3. Request Schema & Session Management
 # -------------------------------------------------------------
 class ChatRequest(BaseModel):
     utterance: str
     session_id: Optional[str] = "default"
     state: Optional[Dict[str, Any]] = None
 
-# In-memory session tracking
+
 sessions: Dict[str, Dict[str, Any]] = {}
+
 
 def get_session(session_id: str) -> Dict[str, Any]:
     if session_id not in sessions:
@@ -202,17 +349,18 @@ def get_session(session_id: str) -> Dict[str, Any]:
             "temperature": None,
             "sweetness_level": None,
             "milk_type": None,
-            "serving_type": "Dine In",
+            "temp_detail": "Hot",
+            "ice_level": "Normal Ice",
             "pending_slot": None,
             "history": []
         }
     return sessions[session_id]
 
+
 # -------------------------------------------------------------
 # 4. API Endpoints
 # -------------------------------------------------------------
-# Groq Whisper API Key configuration (loaded from environment or .env)
-def get_groq_api_key():
+def get_groq_api_key() -> str:
     key = os.environ.get("GROQ_API_KEY", "")
     if not key:
         env_file = os.path.join(BASE_DIR, ".env")
@@ -227,7 +375,6 @@ def get_groq_api_key():
                 pass
     return key
 
-GROQ_API_KEY = get_groq_api_key()
 
 class TTSRequest(BaseModel):
     text: str
@@ -235,17 +382,20 @@ class TTSRequest(BaseModel):
     voice: Optional[str] = None
     tone: Optional[str] = "female"
 
+
 @app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
-        "model": "LogisticRegression (TF-IDF N-gram 1-2)",
-        "dataset_rows": 850,
+        "brand": "ChatCoffee",
+        "model": model_name_str,
+        "dataset_rows": dataset_rows_count or 850,
         "classes": list(classes),
         "kb_items": len(df_kb),
-        "stt_engine": "Groq Whisper Large V3 Turbo",
+        "stt_engine": "Groq Whisper Large V3 / WebSpeech",
         "tts_engine": "Microsoft Edge-TTS Neural"
     }
+
 
 @app.post("/api/transcribe")
 async def transcribe_audio_endpoint(
@@ -253,74 +403,62 @@ async def transcribe_audio_endpoint(
     lang: Optional[str] = Form("ms"),
     model: Optional[str] = Form("whisper-large-v3")
 ):
-    """
-    Transcribes multilingual speech (Manglish/Rojak/Malay/Chinese/Cantonese/English)
-    via Groq Whisper Large V3 or Turbo with regional Kopitiam vocabulary priming.
-    """
+    groq_key = get_groq_api_key()
+    if not groq_key:
+        return JSONResponse(status_code=503, content={"error": "GROQ_API_KEY is not configured on server", "status": "error"})
+
     try:
         audio_bytes = await file.read()
+        if len(audio_bytes) > 10 * 1024 * 1024:
+            return JSONResponse(status_code=413, content={"error": "Audio file exceeds 10MB limit", "status": "error"})
+
         filename = file.filename or "recording.webm"
         mime_type = file.content_type or "audio/webm"
-
-        headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}"
-        }
-        files = {
-            "file": (filename, audio_bytes, mime_type)
-        }
-        
         selected_model = model if model in ["whisper-large-v3", "whisper-large-v3-turbo"] else "whisper-large-v3"
-        
-        prompt = "Pesanan Kopitiam: Kopi, Teh C Peng, Cham, Siu Dai, Kosong, Panas, Kurang Manis, Tapau, Bungkus, Milo, Ais, Limau, Siew Dai, Satu Milo suam, Kopi O"
-        if lang == "zh":
-            prompt = "南洋咖啡店点单：咖啡，奶茶，鸳鸯，美禄，少甜，无糖，打包，冰，热，少冰"
-        elif lang == "en":
-            prompt = "Kopitiam drinks order: Kopi, Teh, Milo, Cham, less sugar, no sugar, iced, hot, takeaway"
 
-        data = {
-            "model": selected_model,
-            "prompt": prompt,
-            "temperature": "0.0"
-        }
-        
-        # Constrain language to eliminate low-resource hallucinations (like Icelandic or Czech)
+        prompt = "Pesanan Kopitiam: Kopi, Teh C Peng, Cham, Siu Dai, Kosong, Panas, Kurang Manis, Milo, Ais, Limau, Satu Milo suam, Kopi O"
+        if lang == "zh":
+            prompt = "南洋咖啡店点单：咖啡，奶茶，鸳鸯，美禄，少甜，无糖，冰，热，少冰"
+        elif lang == "en":
+            prompt = "Kopitiam drinks order: Kopi, Teh, Milo, Cham, less sugar, no sugar, iced, hot"
+
+        data = {"model": selected_model, "prompt": prompt, "temperature": "0.0"}
         if lang and lang != "auto":
             data["language"] = lang
-        
-        res = requests.post(
-            "https://api.groq.com/openai/v1/audio/transcriptions",
-            headers=headers,
-            files=files,
-            data=data,
-            timeout=20
-        )
+
+        def _call_groq():
+            return requests.post(
+                "https://api.groq.com/openai/v1/audio/transcriptions",
+                headers={"Authorization": f"Bearer {groq_key}"},
+                files={"file": (filename, audio_bytes, mime_type)},
+                data=data,
+                timeout=20
+            )
+
+        res = await asyncio.to_thread(_call_groq)
         if res.status_code == 200:
             result = res.json()
-            text = result.get("text", "").strip()
-            return {"text": text, "status": "success", "engine": f"Groq {selected_model}"}
-        else:
-            return JSONResponse(status_code=res.status_code, content={"error": res.text, "status": "error"})
+            return {"text": result.get("text", "").strip(), "status": "success", "engine": f"Groq {selected_model}"}
+        return JSONResponse(status_code=res.status_code, content={"error": res.text, "status": "error"})
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e), "status": "error"})
 
+
 @app.post("/api/tts")
 async def tts_endpoint(req: TTSRequest):
-    """
-    Synthesizes natural, human-sounding speech via Microsoft Edge Neural Voices.
-    """
     text = req.text.strip()
     if not text:
         return JSONResponse(status_code=400, content={"error": "Text is empty"})
-    
-    # Strip brackets so speech flows naturally without reading out technical parentheticals
+    if len(text) > 500:
+        return JSONResponse(status_code=400, content={"error": "Text exceeds 500 character limit"})
+
     clean_speech = re.sub(r"（[^）]*）|\([^)]*\)", "", text).replace("*", "").replace("#", "").strip()
     if not clean_speech:
         clean_speech = text
 
-    # Intelligently select Malaysian/Chinese/English neural voices
     has_chinese = bool(re.search(r"[\u4e00-\u9fff]", clean_speech))
-    has_malay = bool(re.search(r"\b(?:boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan|satu|gula|susu|nak|tukar|bungkus|tapau|kurang|manis|terima|kasih|jom)\b", clean_speech.lower()))
-    
+    has_malay = bool(re.search(r"\b(?:boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan|satu|gula|susu|nak|tukar|kurang|manis|terima|kasih|jom)\b", clean_speech.lower()))
+
     tone = (req.tone or "female").lower()
     if req.voice:
         voice = req.voice
@@ -329,9 +467,12 @@ async def tts_endpoint(req: TTSRequest):
     elif has_malay:
         voice = "ms-MY-OsmanNeural" if tone == "male" else "ms-MY-YasminNeural"
     else:
-        voice = "en-MY-OsmanNeural" if tone == "male" else "en-MY-YasminNeural"
-        
+        # Use valid Singapore English neural voices (en-MY-* does not exist in Edge-TTS)
+        voice = "en-SG-WayneNeural" if tone == "male" else "en-SG-LunaNeural"
+
     try:
+        if edge_tts is None:
+            raise RuntimeError("edge-tts package is not installed")
         communicate = edge_tts.Communicate(clean_speech, voice, rate="+25%")
         audio_data = bytearray()
         async for chunk in communicate.stream():
@@ -339,31 +480,26 @@ async def tts_endpoint(req: TTSRequest):
                 audio_data.extend(chunk["data"])
         return Response(content=bytes(audio_data), media_type="audio/mpeg", headers={"X-Voice-Used": voice})
     except Exception as e:
-        # Fallback to Google Cloud Natural TTS streaming audio if edge-tts connection times out on cloud datacenter
         try:
             glang = "zh-CN" if has_chinese else ("ms" if has_malay else "en")
             g_url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={requests.utils.quote(clean_speech)}&tl={glang}&client=tw-ob"
-            g_res = requests.get(g_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+            g_res = await asyncio.to_thread(requests.get, g_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
             if g_res.status_code == 200:
                 return Response(content=g_res.content, media_type="audio/mpeg", headers={"X-Voice-Used": f"Google-Natural-{glang}"})
         except Exception:
             pass
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+
 @app.get("/api/tts")
 async def tts_get_endpoint(text: str, voice: Optional[str] = None, tone: Optional[str] = "female"):
     return await tts_endpoint(TTSRequest(text=text, voice=voice, tone=tone))
 
+
 @app.post("/api/predict_intent")
 def predict_intent_endpoint(req: ChatRequest):
     c_text = clean_text(req.utterance)
-    X_vec = tfidf_vec.transform([c_text])
-    pred = intent_model.predict(X_vec)[0]
-    probs = intent_model.predict_proba(X_vec)[0]
-    
-    prob_dict = {c: float(round(p, 4)) for c, p in zip(classes, probs)}
-    conf = float(round(probs[list(classes).index(pred)], 4))
-    
+    pred, conf, prob_dict = predict_intent_ml(c_text)
     return {
         "raw_text": req.utterance,
         "clean_text": c_text,
@@ -373,109 +509,94 @@ def predict_intent_endpoint(req: ChatRequest):
         "slots": extract_slots(req.utterance)
     }
 
+
 @app.post("/api/chat")
 def chat_endpoint(req: ChatRequest):
     utterance = req.utterance.strip()
     session_id = req.session_id or "default"
-    state = req.state or get_session(session_id)
-    
+    state = req.state if req.state is not None else get_session(session_id)
+
     c_text = clean_text(utterance)
-    X_vec = tfidf_vec.transform([c_text])
-    
-    # ML Model Prediction
-    pred_intent = intent_model.predict(X_vec)[0]
-    probs = intent_model.predict_proba(X_vec)[0]
-    prob_dict = {c: float(round(p, 4)) for c, p in zip(classes, probs)}
-    conf = float(round(probs[list(classes).index(pred_intent)], 4))
-    
-    # Dual-script slot extraction
+    pred_intent, conf, prob_dict = predict_intent_ml(c_text)
     extracted_slots = extract_slots(utterance)
-    
-    # Dialogue State Machine Execution
+
     is_zh = bool(re.search(r"[\u4e00-\u9fff]", utterance))
     t_low = utterance.lower()
-    
-    # Check physical vending machine single-cup limit
+    was_awaiting_confirm = state.get("status") == "AWAITING_CONFIRMATION"
+
+    # 1. Single-cup vending machine limit
     if re.search(r"\b(?:tambah|tambah lagi|add another|two cups|2 cups|dua cawan)\b", t_low) or "再加一杯" in utterance or "两杯" in utterance:
         response = (
             "抱歉老板！ChatCoffee 无人咖啡机每次只能单杯出料（Single-Cup Dispenser Limit）。请先确认并取走当前这杯，再点下一杯哦！"
             if is_zh else
-            "Maaf boss! Mesin ChatCoffee ini cuma boleh bancuh 1 cawan pada satu masa (Single-Cup Dispenser Limit). Sila sahkan & ambil cawan ini dulu, lepas tu baru order cawan seterusnya ya!"
+            "Maaf boss! Mesin ChatCoffee ini cuma boleh bancuh 1 cawan pada satu masa (Single-Cup Dispenser Limit). Sila sahkan & ambil cawan ini dulu ya!"
         )
         return {
-            "response": response,
-            "intent": "single_cup_limit",
-            "model_intent": pred_intent,
-            "confidence": conf,
-            "probabilities": prob_dict,
-            "clean_text": c_text,
-            "slots": extracted_slots,
-            "state": state
+            "response": response, "intent": "single_cup_limit", "model_intent": pred_intent,
+            "confidence": conf, "probabilities": prob_dict, "clean_text": c_text, "slots": extracted_slots, "state": state
         }
-    
-    # Reset command
-    if utterance.lower() in ["reset", "clear", "semula", "batal", "cancel", "重置", "取消"]:
+
+    # 2. Reset / Cancel command
+    if t_low in ["reset", "clear", "semula", "batal", "cancel", "重置", "取消", "取消订单"] or re.search(r"\b(?:cancel\s+(?:my\s+)?order|batal\s+pesanan)\b", t_low):
         state.update({
             "status": "IDLE", "base_drink": None, "temperature": None,
-            "sweetness_level": None, "milk_type": None, "pending_slot": None
+            "sweetness_level": None, "milk_type": None, "temp_detail": "Hot",
+            "ice_level": "Normal Ice", "pending_slot": None
         })
         response = "好的，已重置订单！请问今天想喝什么？" if is_zh else "Pesanan dikosongkan. Jom order semula boss! Nak minum apa hari ini?"
         return {
-            "response": response,
-            "intent": "system_reset",
-            "model_intent": pred_intent,
-            "confidence": conf,
-            "probabilities": prob_dict,
-            "clean_text": c_text,
-            "slots": {},
-            "state": state
+            "response": response, "intent": "system_reset", "model_intent": pred_intent,
+            "confidence": conf, "probabilities": prob_dict, "clean_text": c_text, "slots": {}, "state": state
         }
-    
-    # Pending slot fill priority
-    if state.get("pending_slot") and state["pending_slot"] in extracted_slots:
-        slot_name = state["pending_slot"]
-        state[slot_name] = extracted_slots[slot_name]
-        state["pending_slot"] = None
-    else:
-        # Merge extracted slots
-        for k, v in extracted_slots.items():
-            state[k] = v
 
-    # Health RAG query via unified_coffee_kb.csv
-    if pred_intent == "health_query":
-        # Search low calorie drinks from KB
+    # 3. Strict confirmation check (ONLY when already awaiting confirmation from a previous turn)
+    has_modify_cue = bool(re.search(r"\b(?:change|tukar|ganti|switch|instead|bukan|ubah|wait)\b", t_low) or re.search(r"[换改]", utterance))
+    is_strict_confirm = bool(
+        re.match(r"^(?:ok(?:ay)?|confirm(?:\s+order)?|yes|ya|yep|yeah|boleh|bayar|ngam|betul|sure|proceed)[\s!.,?]*$", t_low) or
+        re.match(r"^(?:好|好的|确认|确认下单|可以|没问题|下单)[\s！。!.]*$", utterance)
+    )
+    if was_awaiting_confirm and is_strict_confirm and not has_modify_cue and not extracted_slots:
+        state["status"] = "DISPENSING"
         response = (
-            "健康推荐：Kopi O Kosong Peng（仅 24 卡路里，0 糖分，RM 4.00）或 Iced Americano（仅 10 卡路里，RM 5.80）！需要为您来一杯吗？"
+            "订单已确认！正在为您现磨冲泡，请稍候从出料口取杯，谢谢老板！"
             if is_zh else
-            "Untuk pilihan sihat & rendah kalori, kami cadangkan Kopi O Kosong Peng (hanya 24 kcal, 0g gula, RM 4.00) atau Iced Americano (10 kcal, RM 5.80)! Nak saya siapkan sekarang?"
+            "Order confirmed! Mesin sedang bancuh kopi anda. Sila ambil cawan di dispenser, terima kasih boss!"
         )
         return {
-            "response": response,
-            "intent": "health_query",
-            "model_intent": pred_intent,
-            "confidence": conf,
-            "probabilities": prob_dict,
-            "clean_text": c_text,
-            "slots": extracted_slots,
-            "state": state
+            "response": response, "intent": "order_confirm", "model_name": model_name_str,
+            "confidence": 1.0, "probabilities": prob_dict, "clean_text": c_text, "slots": extracted_slots, "state": state
         }
-        
-    # Order Modification
-    if pred_intent == "modify_order":
-        if "base_drink" in extracted_slots:
-            state["base_drink"] = extracted_slots["base_drink"]
-        if "temperature" in extracted_slots:
-            state["temperature"] = extracted_slots["temperature"]
-        if "sweetness_level" in extracted_slots:
-            sweet = extracted_slots["sweetness_level"]
-            condensed_drinks = ["Cham", "Kopi", "Teh", "White Coffee", "Milo", "Neslo"]
-            is_condensed = state.get("milk_type") == "Condensed Milk" or (state.get("base_drink") in condensed_drinks and state.get("milk_type") not in ["None", "Evaporated Milk"])
-            if sweet == "Zero Sugar" and is_condensed:
-                state["sweetness_level"] = "Less Sugar"
-            else:
-                state["sweetness_level"] = sweet
 
-    # Check missing slots
+    # 4. Health RAG query grounded on unified_coffee_kb.csv
+    if pred_intent == "health_query" and not extracted_slots:
+        response = query_healthy_drinks_from_kb(is_zh)
+        return {
+            "response": response, "intent": "health_query", "model_intent": pred_intent,
+            "confidence": conf, "probabilities": prob_dict, "clean_text": c_text, "slots": extracted_slots, "state": state
+        }
+
+    # 5. Merge ALL extracted slots (preserving multi-slot replies during pending_slot clarification)
+    if state.get("pending_slot") and state["pending_slot"] in extracted_slots:
+        state["pending_slot"] = None
+    for k, v in extracted_slots.items():
+        state[k] = v
+
+    # Enforce milk & condensed-milk zero-sugar constraints across ALL intents
+    if state.get("base_drink") in ("Teh O Limau", "Americano"):
+        state["milk_type"] = "None"
+    if state.get("base_drink") == "Americano" and not state.get("sweetness_level"):
+        state["sweetness_level"] = "Zero Sugar"
+    condensed_drinks = ("Cham", "Kopi", "Teh", "White Coffee", "Milo", "Neslo")
+    is_condensed = state.get("milk_type") == "Condensed Milk" or (
+        state.get("base_drink") in condensed_drinks and state.get("milk_type") not in ("None", "Evaporated Milk")
+    )
+    if state.get("sweetness_level") == "Zero Sugar" and is_condensed:
+        if state.get("base_drink") in ("Kopi", "Teh", "Milo") and state.get("milk_type") is None:
+            state["milk_type"] = "None"
+        else:
+            state["sweetness_level"] = "Less Sugar"
+
+    # 6. Check missing mandatory slots
     if not state.get("base_drink"):
         response = "请问您想喝什么饮料呢？我们有 Kopi、Teh、Cham、Milo、White Coffee 等。" if is_zh else "Nak minum apa boss? Kita ada Kopi, Teh, Cham, Milo, White Coffee dan lain-lain."
         state["pending_slot"] = "base_drink"
@@ -490,36 +611,25 @@ def chat_endpoint(req: ChatRequest):
         state["pending_slot"] = "sweetness_level"
         state["status"] = "GATHERING_SLOTS"
     else:
-        # All slots collected -> AWAITING_CONFIRMATION
+        if not state.get("milk_type"):
+            state["milk_type"] = "None" if state["base_drink"] in ("Teh O Limau", "Americano") else "Condensed Milk"
         state["status"] = "AWAITING_CONFIRMATION"
-        drink_name = f"{state['base_drink']} {state.get('temperature', '')}"
+        state["pending_slot"] = None
+        kb_info = lookup_price_and_nutrition(state)
+        state["price_rm"] = kb_info["price_rm"]
+        drink_name = f"{state['base_drink']} {state.get('temperature', '')}".strip()
         sweet = state.get("sweetness_level", "Normal")
-        milk = state.get("milk_type", "Normal")
-        
-        # Calculate price from KB
-        base_price = 4.00
-        if state.get("temperature") == "Hot":
-            base_price = 3.20
-            
+        milk = state.get("milk_type", "Condensed Milk")
         response = (
-            f"好的！一杯 {drink_name}（{sweet}，{milk}）。总共 RM {base_price:.2f}。请问确认下单吗？（请回答 OK / Confirm）"
+            f"好的！一杯 {drink_name}（{sweet}，{milk}）。总共 RM {kb_info['price_rm']:.2f}。请问确认下单吗？（请回答 OK / Confirm）"
             if is_zh else
-            f"Beres boss! Satu {drink_name} ({sweet}, {milk}). Total RM {base_price:.2f}. Nak confirm order sekarang? (Jawab Confirm / Boleh)"
-        )
-
-    # If already awaiting confirmation and user confirms
-    if state["status"] == "AWAITING_CONFIRMATION" and any(w in t_low for w in ["confirm", "ok", "yes", "ya", "boleh", "bayar", "好", "确认", "可以"]):
-        state["status"] = "DISPENSING"
-        response = (
-            "订单已确认！正在为您现磨冲泡，请稍候从出料口取杯，谢谢老板！"
-            if is_zh else
-            "Order confirmed! Mesin sedang bancuh kopi anda. Sila ambil cawan di dispenser, terima kasih boss!"
+            f"Beres boss! Satu {drink_name} ({sweet}, {milk}). Total RM {kb_info['price_rm']:.2f}. Nak confirm order sekarang? (Jawab Confirm / Boleh)"
         )
 
     return {
         "response": response,
         "intent": pred_intent,
-        "model_name": "Logistic Regression (TF-IDF N-gram 1-2)",
+        "model_name": model_name_str,
         "confidence": conf,
         "probabilities": prob_dict,
         "clean_text": c_text,
@@ -527,22 +637,23 @@ def chat_endpoint(req: ChatRequest):
         "state": state
     }
 
+
 # -------------------------------------------------------------
-# 5. Serve Frontend Kiosk UI
+# 5. Serve Frontend Kiosk UI (Single source of truth: index.html)
 # -------------------------------------------------------------
 HTML_FILE = os.path.join(BASE_DIR, "index.html")
-if not os.path.exists(HTML_FILE):
-    HTML_FILE = os.path.join(BASE_DIR, "chatcoffee_malaysian_unmanned_smart_kiosk.html")
+
 
 @app.get("/", response_class=HTMLResponse)
 def serve_kiosk():
     if os.path.exists(HTML_FILE):
         with open(HTML_FILE, "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read())
-    return HTMLResponse("<h1>ChatCoffee Kiosk HTML not found</h1>")
+    return HTMLResponse("<h1>ChatCoffee Kiosk index.html not found</h1>")
+
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    print(f"Starting RojakBrew ML Kiosk on http://localhost:{port}")
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
+    print(f"Starting ChatCoffee ML Kiosk on http://localhost:{port}")
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
