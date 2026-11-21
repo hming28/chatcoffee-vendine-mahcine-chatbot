@@ -598,13 +598,24 @@
             <span id="sttStatusBadge" class="text-[11px] px-2 py-0.5 rounded-full theme-slot-box theme-text-sec font-medium shrink-0">Mic Ready</span>
           </div>
 
-          <!-- Speech Engine Banner (Groq Whisper Zero-Shot Multilingual) -->
-          <div class="flex items-center justify-between gap-2 mb-2.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+          <!-- Speech Engine Bar with Smart Kopitiam Language Mode & Turbo/V3 Selector -->
+          <div class="flex flex-wrap items-center justify-between gap-1.5 mb-2.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-              <span class="text-[11px] font-semibold text-emerald-400 truncate">⚡ Groq Whisper V3 Auto-Detect</span>
+              <span class="text-[11px] font-semibold text-emerald-400">⚡ Groq Whisper</span>
             </div>
-            <span class="text-[10px] text-emerald-300/80 font-medium shrink-0">Manglish • BM • 中文 • 粤语</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <select id="sttLangMode" class="text-[11px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer">
+                <option value="ms" selected>🇲🇾 Manglish / BM / Rojak</option>
+                <option value="zh">🇨🇳 中文 / 粤语</option>
+                <option value="en">🌐 English</option>
+                <option value="auto">✨ Auto (99 Langs)</option>
+              </select>
+              <select id="sttModelSelect" class="text-[11px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer">
+                <option value="whisper-large-v3" selected>Large V3 (Full 1.5B)</option>
+                <option value="whisper-large-v3-turbo">Turbo (Fast 4L)</option>
+              </select>
+            </div>
           </div>
 
           <!-- 4 Quick Demo Pills (Aligned with 4 Supervised ML Intent Classes) -->
@@ -1786,10 +1797,15 @@
           
           let transcribedText = '';
 
+          const selectedLang = document.getElementById('sttLangMode')?.value || 'ms';
+          const selectedModel = document.getElementById('sttModelSelect')?.value || 'whisper-large-v3';
+
           // 1. First attempt: Backend Proxy /api/transcribe
           try {
             const formData = new FormData();
             formData.append('file', audioBlob, 'recording.webm');
+            formData.append('lang', selectedLang);
+            formData.append('model', selectedModel);
             const res = await fetch('/api/transcribe', {
               method: 'POST',
               body: formData
@@ -1809,8 +1825,14 @@
               try {
                 const gFormData = new FormData();
                 gFormData.append('file', audioBlob, 'recording.webm');
-                gFormData.append('model', 'whisper-large-v3-turbo');
-                gFormData.append('prompt', 'Kopitiam order: Kopi, Teh C Peng, Cham, Siu Dai, Kosong, Panas, Kurang Manis, Tapau, Bungkus, Milo, Ais');
+                gFormData.append('model', selectedModel);
+                if (selectedLang && selectedLang !== 'auto') {
+                  gFormData.append('language', selectedLang);
+                }
+                const promptText = selectedLang === 'zh'
+                  ? '南洋咖啡店点单：咖啡，奶茶，鸳鸯，美禄，少甜，无糖，打包，冰，热'
+                  : 'Pesanan Kopitiam: Kopi, Teh C Peng, Cham, Siu Dai, Kosong, Panas, Kurang Manis, Tapau, Bungkus, Milo, Ais, Satu Milo suam, Kopi O';
+                gFormData.append('prompt', promptText);
                 const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
                   method: 'POST',
                   headers: { 'Authorization': 'Bearer ' + clientGroqKey },

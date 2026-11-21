@@ -244,10 +244,14 @@ def health_check():
     }
 
 @app.post("/api/transcribe")
-async def transcribe_audio_endpoint(file: UploadFile = File(...)):
+async def transcribe_audio_endpoint(
+    file: UploadFile = File(...),
+    lang: Optional[str] = Form("ms"),
+    model: Optional[str] = Form("whisper-large-v3")
+):
     """
     Transcribes multilingual speech (Manglish/Rojak/Malay/Chinese/Cantonese/English)
-    via Groq Whisper Large V3 Turbo with zero language-switching constraint.
+    via Groq Whisper Large V3 or Turbo with regional Kopitiam vocabulary priming.
     """
     try:
         audio_bytes = await file.read()
@@ -260,11 +264,24 @@ async def transcribe_audio_endpoint(file: UploadFile = File(...)):
         files = {
             "file": (filename, audio_bytes, mime_type)
         }
+        
+        selected_model = model if model in ["whisper-large-v3", "whisper-large-v3-turbo"] else "whisper-large-v3"
+        
+        prompt = "Pesanan Kopitiam: Kopi, Teh C Peng, Cham, Siu Dai, Kosong, Panas, Kurang Manis, Tapau, Bungkus, Milo, Ais, Limau, Siew Dai, Satu Milo suam, Kopi O"
+        if lang == "zh":
+            prompt = "南洋咖啡店点单：咖啡，奶茶，鸳鸯，美禄，少甜，无糖，打包，冰，热，少冰"
+        elif lang == "en":
+            prompt = "Kopitiam drinks order: Kopi, Teh, Milo, Cham, less sugar, no sugar, iced, hot, takeaway"
+
         data = {
-            "model": "whisper-large-v3-turbo",
-            "prompt": "Kopitiam order: Kopi, Teh C Peng, Cham, Siu Dai, Kosong, Panas, Kurang Manis, Tapau, Bungkus, Milo, Ais, Limau, Siew Dai",
+            "model": selected_model,
+            "prompt": prompt,
             "temperature": "0.0"
         }
+        
+        # Constrain language to eliminate low-resource hallucinations (like Icelandic or Czech)
+        if lang and lang != "auto":
+            data["language"] = lang
         
         res = requests.post(
             "https://api.groq.com/openai/v1/audio/transcriptions",
@@ -276,7 +293,7 @@ async def transcribe_audio_endpoint(file: UploadFile = File(...)):
         if res.status_code == 200:
             result = res.json()
             text = result.get("text", "").strip()
-            return {"text": text, "status": "success", "engine": "Groq Whisper Large V3 Turbo"}
+            return {"text": text, "status": "success", "engine": f"Groq {selected_model}"}
         else:
             return JSONResponse(status_code=res.status_code, content={"error": res.text, "status": "error"})
     except Exception as e:
