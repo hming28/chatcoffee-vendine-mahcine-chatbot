@@ -1708,17 +1708,16 @@
         const disp = `${engineState.base_drink} ${tempWord}`;
         return `${p}${getNlgReply('ask_sweetness', { disp }, lang)}`;
       }
-      if (!engineState.milk_type && engineState.base_drink !== 'Teh O Limau' && engineState.base_drink !== 'Americano') {
-        if (engineState.sweetness_level === 'Zero Sugar' && ['Kopi', 'Teh', 'Milo'].includes(engineState.base_drink)) {
+      if (!engineState.milk_type) {
+        // In this unmanned smart kiosk, every beverage recipe has a fixed/locked milk standard
+        if (['Teh O Limau', 'Americano'].includes(engineState.base_drink)) {
+          engineState.milk_type = 'None';
+        } else if (engineState.sweetness_level === 'Zero Sugar' && ['Kopi', 'Teh', 'Milo'].includes(engineState.base_drink)) {
           // Zero sugar coffee/tea/milo is strictly without milk (O Kosong)
           engineState.milk_type = 'None';
-        } else if (['White Coffee', 'Neslo', 'Cham'].includes(engineState.base_drink)) {
-          // Auto-assign default milk for fixed-recipe beverages (White Coffee, Neslo, Cham)
-          engineState.milk_type = 'Condensed Milk';
         } else {
-          engineState.status = 'GATHERING_SLOTS';
-          engineState.pending_slot = 'milk_type';
-          return `${p}${getNlgReply('ask_milk', {}, lang)}`;
+          // Standard authentic Kopitiam recipe: Kopi, Teh, Milo, Cham, White Coffee, Neslo default to Condensed Milk
+          engineState.milk_type = 'Condensed Milk';
         }
       }
       engineState.status = 'AWAITING_CONFIRMATION';
