@@ -101,6 +101,42 @@
     .theme-text-muted { color: var(--text-muted); }
     .theme-border { border-color: var(--border-subtle); }
 
+    #receiptJsonBox {
+      background: #141213;
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: #86EFAC;
+    }
+    #receiptJsonBox .json-tag {
+      color: #A8A29E;
+    }
+    body.light-theme #receiptJsonBox {
+      background: var(--bg-inner);
+      border: 1px solid var(--border-subtle);
+      color: #15803D;
+    }
+    body.light-theme #receiptJsonBox .json-tag {
+      color: #65A30D;
+    }
+
+    #handsFreeBtn.off {
+      background: var(--bg-slot-box);
+      color: var(--text-secondary);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    #handsFreeBtn.off:hover {
+      border-color: #10B981;
+    }
+    #handsFreeBtn.on {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10B981;
+      border: 1px solid #10B981;
+    }
+    body.light-theme #handsFreeBtn.on {
+      background: rgba(16, 185, 129, 0.15);
+      color: #15803D;
+      border: 1px solid #16A34A;
+    }
+
     .vertical-text {
       writing-mode: vertical-rl;
       text-orientation: mixed;
@@ -479,8 +515,8 @@
               <div class="font-bold text-[#65A30D] uppercase text-[10px] tracking-wider mb-1.5">Order &amp; Nutrition Receipt</div>
               <div id="receiptBreakdown" class="theme-text-sec space-y-1"></div>
             </div>
-            <div class="bg-[#141213] rounded-xl p-3 text-[#86EFAC] font-mono-code text-[11px] border border-[#22C55E]/25 overflow-x-auto">
-              <div class="text-stone-400 font-sans text-[10px] font-bold uppercase mb-1">IoT Hardware Signal JSON</div>
+            <div id="receiptJsonBox" class="rounded-xl p-3 font-mono-code text-[11px] overflow-x-auto transition">
+              <div class="json-tag font-sans text-[10px] font-bold uppercase mb-1.5 tracking-wider">IoT Hardware Signal JSON</div>
               <pre id="receiptJsonOutput" class="whitespace-pre-wrap break-all"></pre>
             </div>
           </div>
@@ -614,9 +650,9 @@
                 👩‍🍳 Warm (1.25x)
               </span>
               <input type="hidden" id="voiceToneSelect" value="female">
-              <button id="handsFreeBtn" type="button" class="px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-stone-800 text-stone-300 border-stone-600 hover:border-emerald-500 flex items-center gap-1" title="Hands-Free Continuous Conversation (Auto-Talk with Interruption)">
+              <button id="handsFreeBtn" type="button" class="px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer flex items-center gap-1 off" title="Hands-Free Continuous Conversation (Auto-Talk with Interruption)">
                 <span id="handsFreeDot" class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
-                <span>Auto-Talk: <span id="handsFreeStateText" class="text-stone-400">OFF</span></span>
+                <span>Auto-Talk: <span id="handsFreeStateText" class="theme-text-muted">OFF</span></span>
               </button>
             </div>
           </div>
@@ -1887,13 +1923,13 @@
         if (handsFreeActive) {
           dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
           txt.textContent = 'ON';
-          txt.className = 'text-emerald-400 font-bold';
-          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-emerald-950/40 text-emerald-300 border-emerald-500 shadow-sm flex items-center gap-1';
+          txt.className = 'text-emerald-500 font-bold';
+          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer flex items-center gap-1 on';
         } else {
           dot.className = 'w-1.5 h-1.5 rounded-full bg-stone-400';
           txt.textContent = 'OFF';
-          txt.className = 'text-stone-400';
-          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-stone-800 text-stone-300 border-stone-600 hover:border-emerald-500 flex items-center gap-1';
+          txt.className = 'theme-text-muted';
+          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer flex items-center gap-1 off';
         }
       }
     }
