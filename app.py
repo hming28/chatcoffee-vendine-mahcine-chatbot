@@ -10,7 +10,7 @@ import joblib
 import pandas as pd
 import numpy as np
 from typing import Optional, Dict, Any
-from fastapi import FastAPI, Request, File, UploadFile, Response
+from fastapi import FastAPI, Request, File, UploadFile, Response, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -334,6 +334,15 @@ async def tts_endpoint(req: TTSRequest):
                 audio_data.extend(chunk["data"])
         return Response(content=bytes(audio_data), media_type="audio/mpeg", headers={"X-Voice-Used": voice})
     except Exception as e:
+        # Fallback to Google Cloud Natural TTS streaming audio if edge-tts connection times out on cloud datacenter
+        try:
+            glang = "zh-CN" if has_chinese else ("ms" if has_malay else "en")
+            g_url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={requests.utils.quote(clean_speech)}&tl={glang}&client=tw-ob"
+            g_res = requests.get(g_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+            if g_res.status_code == 200:
+                return Response(content=g_res.content, media_type="audio/mpeg", headers={"X-Voice-Used": f"Google-Natural-{glang}"})
+        except Exception:
+            pass
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/api/tts")
