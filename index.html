@@ -598,16 +598,13 @@
             <span id="sttStatusBadge" class="text-[11px] px-2 py-0.5 rounded-full theme-slot-box theme-text-sec font-medium shrink-0">Mic Ready</span>
           </div>
 
-          <!-- Mic Language Row -->
-          <div class="flex items-center justify-between gap-2 mb-2.5">
-            <label for="sttLangSelect" class="text-[11px] theme-text-muted font-medium">STT Recognizer:</label>
-            <select id="sttLangSelect" class="text-[11px] font-semibold theme-slot-box theme-text rounded-lg px-2.5 py-1 focus:outline-none cursor-pointer">
-              <option value="groq-whisper" selected>⚡ Groq Whisper V3 (Auto Rojak)</option>
-              <option value="en-MY">Manglish / EN-MY (WebSpeech)</option>
-              <option value="zh-CN">中文 (Mandarin WebSpeech)</option>
-              <option value="yue-Hant-HK">粤语 (Cantonese WebSpeech)</option>
-              <option value="ms-MY">Bahasa Melayu (WebSpeech)</option>
-            </select>
+          <!-- Speech Engine Banner (Groq Whisper Zero-Shot Multilingual) -->
+          <div class="flex items-center justify-between gap-2 mb-2.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              <span class="text-[11px] font-semibold text-emerald-400 truncate">⚡ Groq Whisper V3 Auto-Detect</span>
+            </div>
+            <span class="text-[10px] text-emerald-300/80 font-medium shrink-0">Manglish • BM • 中文 • 粤语</span>
           </div>
 
           <!-- 4 Quick Demo Pills (Aligned with 4 Supervised ML Intent Classes) -->
@@ -1703,12 +1700,21 @@
         try { window.speechSynthesis.cancel(); } catch (e) {}
       }
 
-      // 2. High-Quality Microsoft Edge-TTS via Backend API
+      // Strip technical notes in parentheses like "(Note: ...)" or markdown formatting for clean spoken flow
+      let spokenText = text.replace(/（[^）]*）|\([^)]*\)/g, '').replace(/[*_#`]/g, '').trim();
+      if (!spokenText) spokenText = text;
+
+      // Intelligent language detection for voice timbre
+      const hasChinese = /[\u4e00-\u9fff]/.test(spokenText);
+      const hasMalay = /\b(boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan|satu|gula|susu|nak|tukar|bungkus|tapau|kurang|manis|terima|kasih|jom)\b/i.test(spokenText);
+      const langCode = hasChinese ? 'zh' : (hasMalay ? 'ms' : 'en');
+
+      // Strategy 1: High-Fidelity Microsoft Edge-TTS Neural via Backend API
       try {
         const res = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, lang })
+          body: JSON.stringify({ text: spokenText, lang: langCode })
         });
         if (res.ok) {
           const blob = await res.blob();
@@ -1720,17 +1726,28 @@
           return;
         }
       } catch (err) {
-        // Server TTS unavailable (e.g. running as static file), fallback to WebSpeech
+        // Backend /api/tts unavailable, proceed to Strategy 2
       }
 
-      // 3. Fallback: Web Speech API with Natural Voice Selector
+      // Strategy 2: Google Cloud Natural Streaming TTS (Human Voice Stream, warm and non-robotic!)
+      try {
+        const googleLang = hasChinese ? 'zh-CN' : (hasMalay ? 'ms' : 'en');
+        const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(spokenText)}&tl=${googleLang}&client=tw-ob`;
+        const audio = new Audio(googleTtsUrl);
+        currentTtsAudio = audio;
+        audio.onended = () => { currentTtsAudio = null; };
+        await audio.play();
+        return;
+      } catch (err) {
+        // Google TTS stream unavailable, proceed to Strategy 3
+      }
+
+      // Strategy 3: Web Speech API (last resort)
       if ('speechSynthesis' in window) {
         try {
-          const utter = new SpeechSynthesisUtterance(text);
-          const hasChinese = /[\u4e00-\u9fff]/.test(text);
-          const hasMalay = /\b(boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan|satu|gula|susu|nak|tukar|bungkus|tapau)\b/i.test(text);
+          const utter = new SpeechSynthesisUtterance(spokenText);
           utter.lang = hasChinese ? 'zh-CN' : (hasMalay ? 'ms-MY' : 'en-MY');
-          utter.rate = 1.02;
+          utter.rate = 1.0;
 
           const voices = window.speechSynthesis.getVoices();
           if (voices && voices.length > 0) {
@@ -1766,6 +1783,10 @@
             return;
           }
           updateMicUi('Transcribing (Groq)...');
+          
+          let transcribedText = '';
+
+          // 1. First attempt: Backend Proxy /api/transcribe
           try {
             const formData = new FormData();
             formData.append('file', audioBlob, 'recording.webm');
@@ -1775,23 +1796,46 @@
             });
             if (res.ok) {
               const data = await res.json();
-              if (data.text && data.text.trim()) {
-                const inputEl = document.getElementById('chatInput');
-                inputEl.value = data.text;
-                handleUserMessage(data.text);
-                inputEl.value = '';
-              } else {
-                updateMicUi('No speech heard');
-                setTimeout(() => updateMicUi(), 2000);
-              }
-            } else {
-              throw new Error('Groq STT API returned error');
+              if (data.text && data.text.trim()) transcribedText = data.text.trim();
             }
-          } catch (err) {
-            console.warn('Groq STT failed, fallback message', err);
-            updateMicUi('Groq STT Error');
+          } catch (backendErr) {
+            console.warn('Backend STT proxy error, trying direct Groq CORS:', backendErr);
+          }
+
+          // 2. Second attempt: Direct Groq Whisper Large V3 CORS API call if key present in client/storage
+          if (!transcribedText) {
+            const clientGroqKey = window.GROQ_API_KEY || localStorage.getItem('GROQ_API_KEY');
+            if (clientGroqKey) {
+              try {
+                const gFormData = new FormData();
+                gFormData.append('file', audioBlob, 'recording.webm');
+                gFormData.append('model', 'whisper-large-v3-turbo');
+                gFormData.append('prompt', 'Kopitiam order: Kopi, Teh C Peng, Cham, Siu Dai, Kosong, Panas, Kurang Manis, Tapau, Bungkus, Milo, Ais');
+                const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+                  method: 'POST',
+                  headers: { 'Authorization': 'Bearer ' + clientGroqKey },
+                  body: gFormData
+                });
+                if (groqRes.ok) {
+                  const gData = await groqRes.json();
+                  if (gData.text && gData.text.trim()) transcribedText = gData.text.trim();
+                }
+              } catch (directErr) {
+                console.warn('Direct Groq Whisper API call failed:', directErr);
+              }
+            }
+          }
+
+          if (transcribedText) {
+            const inputEl = document.getElementById('chatInput');
+            inputEl.value = transcribedText;
+            handleUserMessage(transcribedText);
+            inputEl.value = '';
+          } else {
+            updateMicUi('No speech heard');
             setTimeout(() => updateMicUi(), 2000);
           }
+
           isRecording = false;
           updateMicUi();
         };
@@ -1815,9 +1859,7 @@
         updateMicUi('Mic unavailable — Type or Demo');
         return;
       }
-      let langVal = document.getElementById('sttLangSelect').value;
-      if (langVal === 'groq-whisper') langVal = 'en-MY';
-      recognition.lang = langVal;
+      recognition.lang = 'en-MY';
       try {
         recognition.start();
       } catch (e) {
@@ -2376,24 +2418,10 @@
       });
 
       document.getElementById('micBtn').addEventListener('click', () => {
-        const engine = document.getElementById('sttLangSelect').value;
-        if (engine === 'groq-whisper') {
-          if (isRecording) {
-            stopGroqRecording();
-          } else {
-            startGroqRecording();
-          }
+        if (isRecording) {
+          stopGroqRecording();
         } else {
-          if (!recognition) {
-            updateMicUi('Use Chrome/Edge for Voice');
-            appendChatMessage('bot', "Browser voice input works best in Chrome or Edge. You can still type or click the Demo pills above!");
-            return;
-          }
-          if (isRecording) recognition.stop();
-          else {
-            recognition.lang = engine;
-            try { recognition.start(); } catch (e) { isRecording = false; updateMicUi(); }
-          }
+          startGroqRecording();
         }
       });
 

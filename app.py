@@ -289,9 +289,14 @@ async def tts_endpoint(req: TTSRequest):
     if not text:
         return JSONResponse(status_code=400, content={"error": "Text is empty"})
     
+    # Strip brackets so speech flows naturally without reading out technical parentheticals
+    clean_speech = re.sub(r"（[^）]*）|\([^)]*\)", "", text).replace("*", "").replace("#", "").strip()
+    if not clean_speech:
+        clean_speech = text
+
     # Intelligently select Malaysian/Chinese/English neural voices
-    has_chinese = bool(re.search(r"[\u4e00-\u9fff]", text))
-    has_malay = bool(re.search(r"\b(?:boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan|satu|gula|susu|nak|tukar|bungkus|tapau|kurang|manis)\b", text.lower()))
+    has_chinese = bool(re.search(r"[\u4e00-\u9fff]", clean_speech))
+    has_malay = bool(re.search(r"\b(?:boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan|satu|gula|susu|nak|tukar|bungkus|tapau|kurang|manis|terima|kasih|jom)\b", clean_speech.lower()))
     
     if req.voice:
         voice = req.voice
@@ -303,7 +308,7 @@ async def tts_endpoint(req: TTSRequest):
         voice = "en-MY-YasminNeural"
         
     try:
-        communicate = edge_tts.Communicate(text, voice)
+        communicate = edge_tts.Communicate(clean_speech, voice)
         audio_data = bytearray()
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
