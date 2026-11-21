@@ -598,14 +598,11 @@
             <span id="sttStatusBadge" class="text-[11px] px-2 py-0.5 rounded-full theme-slot-box theme-text-sec font-medium shrink-0">Mic Ready</span>
           </div>
 
-          <!-- Speech Engine Bar with Smart Kopitiam Language Mode, Voice Tone & Hands-Free Auto-Talk -->
+          <!-- Speech Engine Bar: Local WebSpeech (Live Stream) + Kopitiam Grammar + Voice Tone & Hands-Free -->
           <div class="flex flex-wrap items-center justify-between gap-1.5 mb-2.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
             <div class="flex items-center gap-1.5 shrink-0">
-              <select id="sttEngineSelect" class="text-[11px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer">
-                <option value="groq-v3" selected>⚡ Groq V3 (Cloud)</option>
-                <option value="groq-turbo">⚡ Groq Turbo (Fast)</option>
-                <option value="local">💻 Local WebSpeech</option>
-              </select>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="text-[11px] font-semibold text-emerald-400">🎙️ Local WebSpeech</span>
               <select id="sttLangMode" class="text-[11px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer">
                 <option value="ms" selected>🇲🇾 Manglish / BM</option>
                 <option value="zh">🇨🇳 中文 / 粤语</option>
@@ -613,11 +610,11 @@
               </select>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-              <select id="voiceToneSelect" class="text-[11px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer" title="Voice Persona Tone">
-                <option value="female" selected>👩‍🍳 Warm (Yasmin)</option>
-                <option value="male">👨‍🍳 Pro (Osman)</option>
+              <select id="voiceToneSelect" class="text-[11px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer" title="Voice Persona Tone (1.25x Speed)">
+                <option value="female" selected>👩‍🍳 Warm (1.25x)</option>
+                <option value="male">👨‍🍳 Pro (1.25x)</option>
               </select>
-              <button id="handsFreeBtn" type="button" class="px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-stone-800 text-stone-300 border-stone-600 hover:border-emerald-500 flex items-center gap-1" title="Hands-Free Continuous Conversation (Auto-Talk)">
+              <button id="handsFreeBtn" type="button" class="px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-stone-800 text-stone-300 border-stone-600 hover:border-emerald-500 flex items-center gap-1" title="Hands-Free Continuous Conversation (Auto-Talk with Interruption)">
                 <span id="handsFreeDot" class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
                 <span>Auto-Talk: <span id="handsFreeStateText" class="text-stone-400">OFF</span></span>
               </button>
@@ -760,20 +757,27 @@
     };
 
     const STT_PHONETIC_FIXES = [
-      [/\bcopy\b/gi, 'kopi'],
-      [/\bcoffee\b/gi, 'kopi'],
-      [/\bsee die\b/gi, 'siu dai'],
-      [/\bshew die\b/gi, 'siu dai'],
-      [/\bsue die\b/gi, 'siu dai'],
-      [/\bgod die\b/gi, 'gah dai'],
-      [/\bpang\b/gi, 'peng'],
-      [/\bping\b/gi, 'peng'],
-      [/\bcharm\b/gi, 'cham'],
-      [/\btay\b/gi, 'teh'],
-      [/\bteh see\b/gi, 'teh c'],
-      [/\bcopy see\b/gi, 'kopi c'],
-      [/\bko song\b/gi, 'kosong'],
-      [/\bgo song\b/gi, 'kosong'],
+      [/\b(?:copy\s*o|copy\s*all|copy\s*old|coffee\s*o)\b/gi, 'kopi o'],
+      [/\b(?:copy\s*c|coffee\s*c|taxi\s*c)\b/gi, 'kopi c'],
+      [/\b(?:copy\s*peng|coffee\s*peng|copy\s*pain|copy\s*pan)\b/gi, 'kopi peng'],
+      [/\b(?:copy|coppie|corpy)\b/gi, 'kopi'],
+      [/\b(?:tea\s*tarik|they\s*tarik|teh\s*tarek)\b/gi, 'teh tarik'],
+      [/\b(?:tea\s*c|teh\s*see|take\s*c|taste\s*c|tc)\b/gi, 'teh c'],
+      [/\b(?:tea\s*o|they\s*o|teh\s*oh|tea\s*all)\b/gi, 'teh o'],
+      [/\b(?:tea|tay|they|tear)\b/gi, 'teh'],
+      [/\b(?:charm|jump|chum|jam|champ|tram|chon)\b/gi, 'cham'],
+      [/\b(?:mellow|my\s*low|milow|mayo)\b/gi, 'milo'],
+      [/\b(?:milo\s*swam|mellow\s*swam|milo\s*warm)\b/gi, 'milo suam'],
+      [/\b(?:nestle|nesle|nest\s*lo)\b/gi, 'neslo'],
+      [/\b(?:see\s*you\s*die|shoot\s*i|she\s*died|siu\s*die|sue\s*die|see\s*die|siew\s*dai|silver\s*die)\b/gi, 'siu dai'],
+      [/\b(?:god\s*die|gah\s*die|ga\s*die)\b/gi, 'gah dai'],
+      [/\b(?:go\s*song|ko\s*song|car\s*song|cause\s*song|call\s*song)\b/gi, 'kosong'],
+      [/\b(?:crang\s*manis|orang\s*manis|kura\s*manis)\b/gi, 'kurang manis'],
+      [/\b(?:to\s*pow|that\s*pow|top\s*up|ta\s*bao|tarbao|ta\s*pao)\b/gi, 'tapau'],
+      [/\b(?:bangkus|boom\s*goose|bonkers)\b/gi, 'bungkus'],
+      [/\b(?:swam|swan)\b/gi, 'suam'],
+      [/\b(?:pan\s*us|pun\s*us|punas)\b/gi, 'panas'],
+      [/\b(?:pain|pen|pang|ping)\b/gi, 'peng'],
       [/\blimua\b/gi, 'limau']
     ];
 
@@ -1710,21 +1714,26 @@
     let vadAnalyser = null;
     let vadMediaStream = null;
 
-    function startListeningSession() {
-      if (isBotSpeaking) return;
-      const engine = document.getElementById('sttEngineSelect')?.value || 'groq-v3';
-      if (engine === 'local') {
-        startWebSpeechRecording();
-      } else {
-        startGroqRecording();
+    function stopBotSpeech() {
+      if (currentTtsAudio) {
+        try { currentTtsAudio.pause(); } catch (e) {}
+        currentTtsAudio = null;
       }
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      isBotSpeaking = false;
+    }
+
+    function startListeningSession() {
+      startWebSpeechRecording();
     }
 
     function stopListeningSession() {
-      stopGroqRecording();
       if (recognition) {
         try { recognition.stop(); } catch (e) {}
       }
+      stopGroqRecording();
       isRecording = false;
       updateMicUi();
     }
@@ -1733,29 +1742,15 @@
       if (!ttsEnabled || typeof window === 'undefined') return;
 
       // 1. Stop any currently playing audio
-      if (currentTtsAudio) {
-        try { currentTtsAudio.pause(); } catch (e) {}
-        currentTtsAudio = null;
-      }
-      if ('speechSynthesis' in window) {
-        try { window.speechSynthesis.cancel(); } catch (e) {}
-      }
+      stopBotSpeech();
 
-      // If mic is open, pause it to prevent hearing own speaker
       isBotSpeaking = true;
-      if (isRecording) {
-        stopListeningSession();
-      }
 
       const onSpeechDone = () => {
         currentTtsAudio = null;
         isBotSpeaking = false;
-        if (handsFreeActive) {
-          setTimeout(() => {
-            if (handsFreeActive && !isBotSpeaking && !isRecording) {
-              startListeningSession();
-            }
-          }, 350);
+        if (handsFreeActive && !isRecording) {
+          setTimeout(startListeningSession, 300);
         }
       };
 
@@ -1769,7 +1764,7 @@
       const langCode = hasChinese ? 'zh' : (hasMalay ? 'ms' : 'en');
       const selectedTone = document.getElementById('voiceToneSelect')?.value || 'female';
 
-      // Strategy 1: High-Fidelity Microsoft Edge-TTS Neural via Backend API
+      // Strategy 1: High-Fidelity Microsoft Edge-TTS Neural via Backend API (1.25x Speed)
       try {
         const res = await fetch('/api/tts', {
           method: 'POST',
@@ -1780,6 +1775,7 @@
           const blob = await res.blob();
           const audioUrl = URL.createObjectURL(blob);
           const audio = new Audio(audioUrl);
+          audio.playbackRate = 1.25;
           currentTtsAudio = audio;
           audio.onended = () => { URL.revokeObjectURL(audioUrl); onSpeechDone(); };
           await audio.play();
@@ -1789,11 +1785,12 @@
         // Backend /api/tts unavailable, proceed to Strategy 2
       }
 
-      // Strategy 2: Google Cloud Natural Streaming TTS (Human Voice Stream, warm and non-robotic!)
+      // Strategy 2: Google Cloud Natural Streaming TTS (1.25x Speed, Human Voice Stream!)
       try {
         const googleLang = hasChinese ? 'zh-CN' : (hasMalay ? 'ms' : 'en');
         const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(spokenText)}&tl=${googleLang}&client=tw-ob`;
         const audio = new Audio(googleTtsUrl);
+        audio.playbackRate = 1.25;
         currentTtsAudio = audio;
         audio.onended = onSpeechDone;
         await audio.play();
@@ -1802,12 +1799,12 @@
         // Google TTS stream unavailable, proceed to Strategy 3
       }
 
-      // Strategy 3: Web Speech API (last resort)
+      // Strategy 3: Web Speech API (last resort, 1.25x brisk barista speed)
       if ('speechSynthesis' in window) {
         try {
           const utter = new SpeechSynthesisUtterance(spokenText);
           utter.lang = hasChinese ? 'zh-CN' : (hasMalay ? 'ms-MY' : 'en-MY');
-          utter.rate = 1.0;
+          utter.rate = 1.25;
           utter.onend = onSpeechDone;
 
           const voices = window.speechSynthesis.getVoices();
@@ -2011,11 +2008,38 @@
       if (!SpeechRecognition) return null;
       try {
         const rec = new SpeechRecognition();
-        rec.continuous = false;
+        rec.continuous = true;
         rec.interimResults = true;
         rec.maxAlternatives = 1;
-        rec.onstart = () => { isRecording = true; updateMicUi(); };
+
+        // JSGF Grammar Biasing for Kopitiam Drinks & Modifiers
+        const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+        if (SpeechGrammarList) {
+          try {
+            const grammarList = new SpeechGrammarList();
+            const jsgf = '#JSGF V1.0; grammar kopitiam; public <drink> = kopi | teh | cham | milo | white coffee | americano | teh o limau | neslo | kopi o | kopi c | teh o | teh c | milo o ; public <mod> = panas | ais | peng | suam | kosong | kurang manis | siu dai | gah dai | tapau | bungkus | satu | dua ;';
+            grammarList.addFromString(jsgf, 1);
+            rec.grammars = grammarList;
+          } catch (ge) {}
+        }
+
+        rec.onstart = () => {
+          isRecording = true;
+          updateMicUi(handsFreeActive ? 'Auto-Listening...' : 'Listening...');
+        };
+
+        // BARGE-IN: If user speaks while the bot is talking, immediately interrupt the bot!
+        rec.onspeechstart = () => {
+          if (isBotSpeaking) {
+            stopBotSpeech();
+            updateMicUi('Interrupted! Listening to you...');
+          }
+        };
+
         rec.onresult = (event) => {
+          if (isBotSpeaking) {
+            stopBotSpeech();
+          }
           let transcript = '';
           let isFinal = false;
           for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -2024,27 +2048,36 @@
           }
           const inputEl = document.getElementById('chatInput');
           inputEl.value = transcript;
+
           if (isFinal && transcript.trim()) {
-            rec.stop();
-            isRecording = false;
-            updateMicUi();
+            if (!handsFreeActive) {
+              rec.stop();
+              isRecording = false;
+              updateMicUi();
+            }
             const { fixed, changed } = applySttPhoneticFix(transcript.trim());
             document.getElementById('phoneticFixBadge').classList.toggle('hidden', !changed);
             handleUserMessage(fixed);
             inputEl.value = '';
           }
         };
+
         rec.onerror = () => {
           isRecording = false;
           updateMicUi();
           if (handsFreeActive && !isBotSpeaking) {
-            setTimeout(startListeningSession, 1000);
+            setTimeout(startListeningSession, 600);
           }
         };
+
         rec.onend = () => {
           isRecording = false;
           updateMicUi();
+          if (handsFreeActive && !isBotSpeaking) {
+            setTimeout(startListeningSession, 250);
+          }
         };
+
         return rec;
       } catch (e) {
         return null;

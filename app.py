@@ -329,7 +329,7 @@ async def tts_endpoint(req: TTSRequest):
         voice = "en-MY-OsmanNeural" if tone == "male" else "en-MY-YasminNeural"
         
     try:
-        communicate = edge_tts.Communicate(clean_speech, voice)
+        communicate = edge_tts.Communicate(clean_speech, voice, rate="+25%")
         audio_data = bytearray()
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
