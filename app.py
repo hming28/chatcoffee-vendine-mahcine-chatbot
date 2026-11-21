@@ -156,8 +156,9 @@ def extract_slots(text: str) -> Dict[str, str]:
     ):
         slots["milk_type"] = "Evaporated Milk"
     elif (
-        "乌" in text or "黑咖啡" in text or
-        re.search(r"\b(?:kopi o|teh o|cham o|milo o)\b|\b(?:o|kosong milk|no milk|tanpa susu|black)\b", t_low)
+        "乌" in text or "黑咖啡" in text or "不加奶" in text or "不要奶" in text or "不用奶" in text or
+        re.search(r"\b(?:kopi o|teh o|cham o|milo o|kopi all|teh all|milo all)\b|\b(?:o|kosong milk|no milk|tanpa susu|black|tak perlu|tak payah|tak nak susu|tak mau susu)\b", t_low) or
+        (re.search(r"\bkosong\b", t_low) and not re.search(r"\b(?:susu|condensed|evaporated|c|tarik|biasa)\b", t_low))
     ):
         slots["milk_type"] = "None"
     elif (

@@ -757,13 +757,17 @@
     };
 
     const STT_PHONETIC_FIXES = [
-      [/\b(?:copy\s*o|copy\s*all|copy\s*old|coffee\s*o)\b/gi, 'kopi o'],
-      [/\b(?:copy\s*c|coffee\s*c|taxi\s*c)\b/gi, 'kopi c'],
+      [/\b(?:copy|coffee|coppie|corpy|kopi)\s*(?:all|old|oh|or|awl|ow|o)\b/gi, 'kopi o'],
+      [/\b(?:tea|they|tay|teh)\s*(?:all|old|oh|or|awl|ow|o)\b/gi, 'teh o'],
+      [/\b(?:milo|mellow|my\s*low)\s*(?:all|old|oh|or|awl|ow|o)\b/gi, 'milo o'],
+      [/\b(?:copy|coffee|coppie|corpy|kopi)\s*(?:c|see|sea)\b/gi, 'kopi c'],
+      [/\b(?:tea|they|tay|teh)\s*(?:c|see|sea)\b/gi, 'teh c'],
+      [/\b(?:copy|coffee|coppie|corpy|kopi)\s+kosong\b/gi, 'kopi o kosong'],
+      [/\b(?:tea|they|tay|teh)\s+kosong\b/gi, 'teh o kosong'],
+      [/\b(?:milo|mellow|my\s*low)\s+kosong\b/gi, 'milo o kosong'],
       [/\b(?:copy\s*peng|coffee\s*peng|copy\s*pain|copy\s*pan)\b/gi, 'kopi peng'],
       [/\b(?:copy|coppie|corpy)\b/gi, 'kopi'],
       [/\b(?:tea\s*tarik|they\s*tarik|teh\s*tarek)\b/gi, 'teh tarik'],
-      [/\b(?:tea\s*c|teh\s*see|take\s*c|taste\s*c|tc)\b/gi, 'teh c'],
-      [/\b(?:tea\s*o|they\s*o|teh\s*oh|tea\s*all)\b/gi, 'teh o'],
       [/\b(?:tea|tay|they|tear)\b/gi, 'teh'],
       [/\b(?:charm|jump|chum|jam|champ|tram|chon)\b/gi, 'cham'],
       [/\b(?:mellow|my\s*low|milow|mayo)\b/gi, 'milo'],
@@ -865,7 +869,11 @@
           slots.milk_type = 'Condensed Milk';
         } else if (/\b(?:susu cair|evaporated|evaporated milk|c|si)\b/.test(tLow) || text.includes('淡奶')) {
           slots.milk_type = 'Evaporated Milk';
-        } else if (/\b(?:tanpa susu|no milk|black|o|kosong susu|tak mau susu|tak nak susu)\b/.test(tLow) || text.includes('不加奶')) {
+        } else if (
+          /\b(?:tanpa susu|no milk|black|o|kosong susu|tak mau susu|tak nak susu|tak perlu|tak payah|kosong)\b/.test(tLow) ||
+          /\b(?:kopi o|teh o|cham o|milo o)\b/.test(tLow) ||
+          text.includes('不加奶') || text.includes('不要奶') || text.includes('不用奶') || text.includes('黑咖啡') || text.includes('乌')
+        ) {
           slots.milk_type = 'None';
         }
       }
@@ -1504,7 +1512,10 @@
             mkVal = 'Condensed Milk';
           } else if (/\b(?:c|si|susu cair|evaporated)\b/.test(tLow) || utterance.includes('淡奶')) {
             mkVal = 'Evaporated Milk';
-          } else if (/\b(?:o|kosong|tanpa susu|no milk|black)\b/.test(tLow) || utterance.includes('不加奶')) {
+          } else if (
+            /\b(?:o|kosong|tanpa susu|no milk|black|tak perlu|tak nak|tak mau|tak payah|no need|no|nope|don't want|takde)\b/.test(tLow) ||
+            utterance.includes('不加奶') || utterance.includes('不要奶') || utterance.includes('不用奶') || utterance.includes('不要') || utterance.includes('不用') || utterance.includes('走奶')
+          ) {
             mkVal = 'None';
           } else if (slots.milk_type) {
             mkVal = slots.milk_type;
@@ -1611,6 +1622,11 @@
         if (slots[k]) engineState[k] = slots[k];
       }
       if (engineState.base_drink === 'Teh O Limau') engineState.milk_type = 'None';
+      // Smart Kopitiam Zero Sugar / Kosong Coupling:
+      // In Kopitiam culture, 'Kosong' / Zero Sugar on Kopi, Teh, or Milo implies No Milk (O Kosong)
+      if (engineState.sweetness_level === 'Zero Sugar' && !engineState.milk_type && ['Kopi', 'Teh', 'Milo'].includes(engineState.base_drink)) {
+        engineState.milk_type = 'None';
+      }
       if (engineState.temperature) menuTempTab = engineState.temperature;
 
       if (engineState.base_drink) {
@@ -1653,8 +1669,11 @@
         return `${p}${getNlgReply('ask_sweetness', { disp }, lang)}`;
       }
       if (!engineState.milk_type && engineState.base_drink !== 'Teh O Limau' && engineState.base_drink !== 'Americano') {
-        // Auto-assign default milk for fixed-recipe beverages (White Coffee, Neslo, Cham)
-        if (['White Coffee', 'Neslo', 'Cham'].includes(engineState.base_drink)) {
+        if (engineState.sweetness_level === 'Zero Sugar' && ['Kopi', 'Teh', 'Milo'].includes(engineState.base_drink)) {
+          // Zero sugar coffee/tea/milo is strictly without milk (O Kosong)
+          engineState.milk_type = 'None';
+        } else if (['White Coffee', 'Neslo', 'Cham'].includes(engineState.base_drink)) {
+          // Auto-assign default milk for fixed-recipe beverages (White Coffee, Neslo, Cham)
           engineState.milk_type = 'Condensed Milk';
         } else {
           engineState.status = 'GATHERING_SLOTS';
@@ -1725,11 +1744,41 @@
       isBotSpeaking = false;
     }
 
+    let listenTimeout = null;
+
+    function setHandsFree(active) {
+      handsFreeActive = active;
+      const dot = document.getElementById('handsFreeDot');
+      const txt = document.getElementById('handsFreeStateText');
+      const btn = document.getElementById('handsFreeBtn');
+      if (dot && txt && btn) {
+        if (handsFreeActive) {
+          dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
+          txt.textContent = 'ON';
+          txt.className = 'text-emerald-400 font-bold';
+          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-emerald-950/40 text-emerald-300 border-emerald-500 shadow-sm flex items-center gap-1';
+        } else {
+          dot.className = 'w-1.5 h-1.5 rounded-full bg-stone-400';
+          txt.textContent = 'OFF';
+          txt.className = 'text-stone-400';
+          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-stone-800 text-stone-300 border-stone-600 hover:border-emerald-500 flex items-center gap-1';
+        }
+      }
+    }
+
     function startListeningSession() {
+      if (listenTimeout) {
+        clearTimeout(listenTimeout);
+        listenTimeout = null;
+      }
       startWebSpeechRecording();
     }
 
     function stopListeningSession() {
+      if (listenTimeout) {
+        clearTimeout(listenTimeout);
+        listenTimeout = null;
+      }
       if (recognition) {
         try { recognition.stop(); } catch (e) {}
       }
@@ -1750,7 +1799,7 @@
         currentTtsAudio = null;
         isBotSpeaking = false;
         if (handsFreeActive && !isRecording) {
-          setTimeout(startListeningSession, 300);
+          listenTimeout = setTimeout(startListeningSession, 300);
         }
       };
 
@@ -2066,7 +2115,7 @@
           isRecording = false;
           updateMicUi();
           if (handsFreeActive && !isBotSpeaking) {
-            setTimeout(startListeningSession, 600);
+            listenTimeout = setTimeout(startListeningSession, 600);
           }
         };
 
@@ -2074,7 +2123,7 @@
           isRecording = false;
           updateMicUi();
           if (handsFreeActive && !isBotSpeaking) {
-            setTimeout(startListeningSession, 250);
+            listenTimeout = setTimeout(startListeningSession, 250);
           }
         };
 
@@ -2090,12 +2139,12 @@
       if (isRecording) {
         micBtn.classList.add('mic-recording', 'bg-red-600');
         micBtn.classList.remove('bg-[#16A34A]');
-        badge.textContent = customMsg || 'Listening...';
+        badge.textContent = customMsg || (handsFreeActive ? 'Auto-Listening...' : 'Listening...');
         badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-500 font-bold border border-red-500/40 shrink-0';
       } else {
         micBtn.classList.remove('mic-recording', 'bg-red-600');
         micBtn.classList.add('bg-[#16A34A]');
-        badge.textContent = customMsg || 'Mic Ready';
+        badge.textContent = customMsg || (handsFreeActive ? 'Auto-Talk Waiting' : 'Mic Ready');
         badge.className = 'text-[11px] px-2 py-0.5 rounded-full theme-slot-box theme-text-sec font-medium shrink-0';
       }
     }
@@ -2603,7 +2652,11 @@
       });
 
       document.getElementById('micBtn').addEventListener('click', () => {
-        if (isRecording) {
+        if (isRecording || handsFreeActive) {
+          // If user clicks the mic button to turn it off, also shut down auto-talk completely
+          if (handsFreeActive) {
+            setHandsFree(false);
+          }
           stopListeningSession();
         } else {
           startListeningSession();
@@ -2611,21 +2664,10 @@
       });
 
       document.getElementById('handsFreeBtn')?.addEventListener('click', () => {
-        handsFreeActive = !handsFreeActive;
-        const dot = document.getElementById('handsFreeDot');
-        const txt = document.getElementById('handsFreeStateText');
-        const btn = document.getElementById('handsFreeBtn');
+        setHandsFree(!handsFreeActive);
         if (handsFreeActive) {
-          dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
-          txt.textContent = 'ON';
-          txt.className = 'text-emerald-400 font-bold';
-          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-emerald-950/40 text-emerald-300 border-emerald-500 shadow-sm flex items-center gap-1';
           startListeningSession();
         } else {
-          dot.className = 'w-1.5 h-1.5 rounded-full bg-stone-400';
-          txt.textContent = 'OFF';
-          txt.className = 'text-stone-400';
-          btn.className = 'px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-stone-800 text-stone-300 border-stone-600 hover:border-emerald-500 flex items-center gap-1';
           stopListeningSession();
         }
       });
