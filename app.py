@@ -40,7 +40,9 @@ SLANG_PATH = os.path.join(BASE_DIR, "NLP_Datasets", "shortform-dict.json")
 if not os.path.exists(SLANG_PATH):
     SLANG_PATH = os.path.join(BASE_DIR, "shortform-dict.json")
 
-KB_PATH = os.path.join(BASE_DIR, "unified_coffee_kb.csv")
+KB_PATH = os.path.join(BASE_DIR, "NLP_Datasets", "unified_coffee_kb.csv")
+if not os.path.exists(KB_PATH):
+    KB_PATH = os.path.join(BASE_DIR, "unified_coffee_kb.csv")
 if not os.path.exists(KB_PATH):
     KB_PATH = os.path.join(BASE_DIR, "data", "unified_coffee_kb.csv")
 

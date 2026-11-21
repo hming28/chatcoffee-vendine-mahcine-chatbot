@@ -18,7 +18,7 @@ An autonomous, multi-turn conversational AI kiosk engineered specifically for au
 
 2. **Supervised ML Intent Classifier (Zero Rule-Based Classification)**:
    - Evaluated across 4 algorithms (MultinomialNB, Logistic Regression, LinearSVC, Random Forest).
-   - Champion Model: **Logistic Regression with TF-IDF N-Gram (1-2) Vectorization** trained on **850 curated gold instances (`chatcoffee_gold_850.csv`)**.
+   - Champion Model: **Logistic Regression with TF-IDF N-Gram (1-2) Vectorization** trained on **850 curated gold instances (`NLP_Datasets/chatcoffee_gold_850.csv`)**.
    - Outputs live Softmax probability distributions across 4 core intents:
      - `order_drink`
      - `clarify_order`
@@ -35,7 +35,7 @@ An autonomous, multi-turn conversational AI kiosk engineered specifically for au
    - Single-cup physical dispensing constraint handling.
 
 5. **Nutritional RAG Knowledge Base**:
-   - Grounded on 378 authentic beverage records (`unified_coffee_kb.csv`) providing laboratory-verified calories, sugar content, caffeine levels, and live RM checkout pricing.
+   - Grounded on 378 authentic beverage records (`NLP_Datasets/unified_coffee_kb.csv`) providing laboratory-verified calories, sugar content, caffeine levels, and live RM checkout pricing.
 
 ---
 
@@ -45,8 +45,6 @@ An autonomous, multi-turn conversational AI kiosk engineered specifically for au
 ├── index.html                                     # Interactive Smart Kiosk Web UI (Live Voice & ML)
 ├── app.py                                         # FastAPI server hosting REST API & Kiosk UI
 ├── ChatCoffee_NLP_Model_Training_and_Evaluation.ipynb # Complete Jupyter Notebook (EDA, ML & Evaluation)
-├── chatcoffee_gold_850.csv                        # 850-instance Gold NLU Benchmark Dataset
-├── unified_coffee_kb.csv                          # 378-drink Grounded Knowledge Base
 ├── requirements.txt                               # Production Python dependencies
 ├── Dockerfile                                     # 1-Click Container Deployment
 ├── Procfile                                       # Render / PaaS deployment entrypoint
@@ -54,9 +52,9 @@ An autonomous, multi-turn conversational AI kiosk engineered specifically for au
 │   ├── chatcoffee_intent_classifier.joblib        # Serialized Scikit-Learn champion model
 │   └── chatcoffee_model_web.json                  # Mathematical vector-matrix weights for Client Web
 └── NLP_Datasets/
-    ├── shortform-dict.json                        # 341 Malaysian slang normalization rules
-    ├── kopitiam.csv                               # Kopitiam beverage domain ontology
-    └── starbucks_drinkMenu_expanded.csv           # Nutritional baseline dataset
+    ├── chatcoffee_gold_850.csv                    # 850-instance Gold NLU Benchmark Dataset
+    ├── unified_coffee_kb.csv                      # 378-drink Grounded Knowledge Base
+    └── shortform-dict.json                        # 341 Malaysian slang normalization rules
 ```
 
 ---
