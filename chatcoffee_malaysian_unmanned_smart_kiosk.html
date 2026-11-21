@@ -610,10 +610,10 @@
               </select>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-              <select id="voiceToneSelect" class="text-[11px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer" title="Voice Persona Tone (1.25x Speed)">
-                <option value="female" selected>👩‍🍳 Warm (1.25x)</option>
-                <option value="male">👨‍🍳 Pro (1.25x)</option>
-              </select>
+              <span class="text-[11px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 rounded px-2 py-0.5 flex items-center gap-1" title="Warm Barista Persona (1.25x Speed)">
+                👩‍🍳 Warm (1.25x)
+              </span>
+              <input type="hidden" id="voiceToneSelect" value="female">
               <button id="handsFreeBtn" type="button" class="px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer bg-stone-800 text-stone-300 border-stone-600 hover:border-emerald-500 flex items-center gap-1" title="Hands-Free Continuous Conversation (Auto-Talk with Interruption)">
                 <span id="handsFreeDot" class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
                 <span>Auto-Talk: <span id="handsFreeStateText" class="text-stone-400">OFF</span></span>
@@ -757,6 +757,10 @@
     };
 
     const STT_PHONETIC_FIXES = [
+      [/\b(?:copy|coffee|coppie|corpy|kopi)\s+o\s+0\b/gi, 'kopi o kosong'],
+      [/\b(?:tea|they|tay|teh)\s+o\s+0\b/gi, 'teh o kosong'],
+      [/\b(?:copy|coffee|coppie|corpy|kopi)\s+0\b/gi, 'kopi o kosong'],
+      [/\b(?:tea|they|tay|teh)\s+0\b/gi, 'teh o kosong'],
       [/\b(?:copy|coffee|coppie|corpy|kopi)\s*(?:all|old|oh|or|awl|ow|o)\b/gi, 'kopi o'],
       [/\b(?:tea|they|tay|teh)\s*(?:all|old|oh|or|awl|ow|o)\b/gi, 'teh o'],
       [/\b(?:milo|mellow|my\s*low)\s*(?:all|old|oh|or|awl|ow|o)\b/gi, 'milo o'],
@@ -853,13 +857,16 @@
       }
 
       // Sweetness Entity
-      if (text.includes('无糖') || text.includes('無糖') || text.includes('走糖') || /\b(?:kosong|zero sugar|no sugar|tanpa gula|zero)\b|\b0\s*%/.test(tLow)) {
+      if (text.includes('无糖') || text.includes('無糖') || text.includes('走糖') || /\b(?:kosong|zero sugar|no sugar|tanpa gula|zero|0\s*%|\b0\b)\b/.test(tLow)) {
         slots.sweetness_level = 'Zero Sugar';
       } else if (text.includes('少糖') || text.includes('微糖') || text.includes('少甜') || text.includes('半糖') || /\b(?:siu dai|siew dai|less sugar|kurang manis|sedikit|half sugar|less sweet)\b|\b(?:50|30|25)\s*%/.test(tLow)) {
         slots.sweetness_level = 'Less Sugar';
       } else if (text.includes('多糖') || text.includes('加糖') || text.includes('多甜') || /\b(?:gah dai|ga dai|extra sweet|lebih manis|banyak|extra sugar)\b|\b120\s*%/.test(tLow)) {
         slots.sweetness_level = 'Extra Sugar';
       } else if (text.includes('正常糖') || text.includes('正常甜') || /\b(?:normal|biasa|sedang|standard|regular)\b|\b100\s*%/.test(tLow)) {
+        slots.sweetness_level = 'Normal';
+      } else if (/\b(?:kopi\s*o|teh\s*o|cham\s*o|milo\s*o)\b/.test(tLow) || text.includes('咖啡乌') || text.includes('茶乌') || text.includes('美禄乌')) {
+        // "O" drinks without "kosong/siu dai/gah dai" specify standard sugar (Normal Sugar) in Kopitiam culture!
         slots.sweetness_level = 'Normal';
       }
 
