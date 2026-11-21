@@ -1,5 +1,5 @@
 """
-app.py - ChatCoffee Unmanned Smart Kiosk Backend Server
+app.py - RojakBrew Unmanned Smart Kiosk Backend Server
 Powered by Scikit-Learn Machine Learning Models + Unified Coffee Knowledge Base
 """
 
@@ -10,15 +10,17 @@ import joblib
 import pandas as pd
 import numpy as np
 from typing import Optional, Dict, Any
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, File, UploadFile, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import requests
+import edge_tts
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-app = FastAPI(title="ChatCoffee NLP Kiosk API", version="2.0")
+app = FastAPI(title="RojakBrew NLP Kiosk API", version="2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,7 +33,7 @@ app.add_middleware(
 # -------------------------------------------------------------
 # 1. Load ML Artifacts & Knowledge Base Datasets
 # -------------------------------------------------------------
-MODEL_PATH = os.path.join(BASE_DIR, "models", "chatcoffee_intent_classifier.joblib")
+MODEL_PATH = os.path.join(BASE_DIR, "models", "rojak_intent_classifier.joblib")
 SLANG_PATH = os.path.join(BASE_DIR, "NLP_Datasets", "shortform-dict.json")
 if not os.path.exists(SLANG_PATH):
     SLANG_PATH = os.path.join(BASE_DIR, "shortform-dict.json")
@@ -204,6 +206,29 @@ def get_session(session_id: str) -> Dict[str, Any]:
 # -------------------------------------------------------------
 # 4. API Endpoints
 # -------------------------------------------------------------
+# Groq Whisper API Key configuration (loaded from environment or .env)
+def get_groq_api_key():
+    key = os.environ.get("GROQ_API_KEY", "")
+    if not key:
+        env_file = os.path.join(BASE_DIR, ".env")
+        if os.path.exists(env_file):
+            try:
+                with open(env_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.strip().startswith("GROQ_API_KEY="):
+                            key = line.strip().split("=", 1)[1].strip().strip('"').strip("'")
+                            break
+            except Exception:
+                pass
+    return key
+
+GROQ_API_KEY = get_groq_api_key()
+
+class TTSRequest(BaseModel):
+    text: str
+    lang: Optional[str] = "en"
+    voice: Optional[str] = None
+
 @app.get("/api/health")
 def health_check():
     return {
@@ -211,8 +236,85 @@ def health_check():
         "model": "LogisticRegression (TF-IDF N-gram 1-2)",
         "dataset_rows": 850,
         "classes": list(classes),
-        "kb_items": len(df_kb)
+        "kb_items": len(df_kb),
+        "stt_engine": "Groq Whisper Large V3 Turbo",
+        "tts_engine": "Microsoft Edge-TTS Neural"
     }
+
+@app.post("/api/transcribe")
+async def transcribe_audio_endpoint(file: UploadFile = File(...)):
+    """
+    Transcribes multilingual speech (Manglish/Rojak/Malay/Chinese/Cantonese/English)
+    via Groq Whisper Large V3 Turbo with zero language-switching constraint.
+    """
+    try:
+        audio_bytes = await file.read()
+        filename = file.filename or "recording.webm"
+        mime_type = file.content_type or "audio/webm"
+
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}"
+        }
+        files = {
+            "file": (filename, audio_bytes, mime_type)
+        }
+        data = {
+            "model": "whisper-large-v3-turbo",
+            "prompt": "Kopitiam order: Kopi, Teh C Peng, Cham, Siu Dai, Kosong, Panas, Kurang Manis, Tapau, Bungkus, Milo, Ais, Limau, Siew Dai",
+            "temperature": "0.0"
+        }
+        
+        res = requests.post(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            headers=headers,
+            files=files,
+            data=data,
+            timeout=20
+        )
+        if res.status_code == 200:
+            result = res.json()
+            text = result.get("text", "").strip()
+            return {"text": text, "status": "success", "engine": "Groq Whisper Large V3 Turbo"}
+        else:
+            return JSONResponse(status_code=res.status_code, content={"error": res.text, "status": "error"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e), "status": "error"})
+
+@app.post("/api/tts")
+async def tts_endpoint(req: TTSRequest):
+    """
+    Synthesizes natural, human-sounding speech via Microsoft Edge Neural Voices.
+    """
+    text = req.text.strip()
+    if not text:
+        return JSONResponse(status_code=400, content={"error": "Text is empty"})
+    
+    # Intelligently select Malaysian/Chinese/English neural voices
+    has_chinese = bool(re.search(r"[\u4e00-\u9fff]", text))
+    has_malay = bool(re.search(r"\b(?:boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan|satu|gula|susu|nak|tukar|bungkus|tapau|kurang|manis)\b", text.lower()))
+    
+    if req.voice:
+        voice = req.voice
+    elif has_chinese:
+        voice = "zh-CN-XiaoxiaoNeural"
+    elif has_malay:
+        voice = "ms-MY-YasminNeural"
+    else:
+        voice = "en-MY-YasminNeural"
+        
+    try:
+        communicate = edge_tts.Communicate(text, voice)
+        audio_data = bytearray()
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_data.extend(chunk["data"])
+        return Response(content=bytes(audio_data), media_type="audio/mpeg", headers={"X-Voice-Used": voice})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/api/tts")
+async def tts_get_endpoint(text: str, voice: Optional[str] = None):
+    return await tts_endpoint(TTSRequest(text=text, voice=voice))
 
 @app.post("/api/predict_intent")
 def predict_intent_endpoint(req: ChatRequest):
@@ -327,7 +429,13 @@ def chat_endpoint(req: ChatRequest):
         if "temperature" in extracted_slots:
             state["temperature"] = extracted_slots["temperature"]
         if "sweetness_level" in extracted_slots:
-            state["sweetness_level"] = extracted_slots["sweetness_level"]
+            sweet = extracted_slots["sweetness_level"]
+            condensed_drinks = ["Cham", "Kopi", "Teh", "White Coffee", "Milo", "Neslo"]
+            is_condensed = state.get("milk_type") == "Condensed Milk" or (state.get("base_drink") in condensed_drinks and state.get("milk_type") not in ["None", "Evaporated Milk"])
+            if sweet == "Zero Sugar" and is_condensed:
+                state["sweetness_level"] = "Less Sugar"
+            else:
+                state["sweetness_level"] = sweet
 
     # Check missing slots
     if not state.get("base_drink"):
@@ -396,5 +504,5 @@ def serve_kiosk():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    print(f"Starting ChatCoffee ML Kiosk on http://localhost:{port}")
+    print(f"Starting RojakBrew ML Kiosk on http://localhost:{port}")
     uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

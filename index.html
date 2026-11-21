@@ -600,12 +600,13 @@
 
           <!-- Mic Language Row -->
           <div class="flex items-center justify-between gap-2 mb-2.5">
-            <label for="sttLangSelect" class="text-[11px] theme-text-muted font-medium">Speech Language:</label>
+            <label for="sttLangSelect" class="text-[11px] theme-text-muted font-medium">STT Recognizer:</label>
             <select id="sttLangSelect" class="text-[11px] font-semibold theme-slot-box theme-text rounded-lg px-2.5 py-1 focus:outline-none cursor-pointer">
-              <option value="en-MY">Manglish / EN-MY</option>
-              <option value="zh-CN">中文 (Mandarin)</option>
-              <option value="yue-Hant-HK">粤语 (Cantonese)</option>
-              <option value="ms-MY">Bahasa Melayu</option>
+              <option value="groq-whisper" selected>⚡ Groq Whisper V3 (Auto Rojak)</option>
+              <option value="en-MY">Manglish / EN-MY (WebSpeech)</option>
+              <option value="zh-CN">中文 (Mandarin WebSpeech)</option>
+              <option value="yue-Hant-HK">粤语 (Cantonese WebSpeech)</option>
+              <option value="ms-MY">Bahasa Melayu (WebSpeech)</option>
             </select>
           </div>
 
@@ -974,6 +975,12 @@
         return { intent: 'order_confirm', confidence: 1.0, is_ml: false, probabilities: {} };
       }
 
+      // Check if an order is active and user is simply specifying or modifying a slot (prevent intent hijacking to health_query)
+      const isHealthQuestion = /\b(?:what|apa|which|mana|ada|rekomen|recommend|suggest|cadang|sihat|healthy|calorie|calories|kalori|diet)\b/i.test(tLow) || utterance.includes('?');
+      if (state.base_drink && !isHealthQuestion && (slots.sweetness_level || slots.temperature || slots.ice_level || slots.milk_type || slots.temp_detail)) {
+        return { intent: 'modify_order', confidence: 0.95, is_ml: false, probabilities: { modify_order: 95.0 } };
+      }
+
       // Machine Learning Intent Classification (Logistic Regression on TF-IDF n-grams)
       const cleanUtt = preprocessRojakText(utterance);
       const ml = predictIntentML(cleanUtt);
@@ -1185,6 +1192,12 @@
       // Enforce No Milk for Teh O Limau
       if (engineState.base_drink === 'Teh O Limau' || engineState.base_drink === 'Americano') {
         engineState.milk_type = 'None';
+      }
+
+      // Enforce allowZeroSugar rule (Condensed Milk drinks cannot be Zero Sugar)
+      const rules = getActiveItemRules();
+      if (!rules.allowZeroSugar && engineState.sweetness_level === 'Zero Sugar') {
+        engineState.sweetness_level = 'Less Sugar';
       }
 
       const basePrices = {
@@ -1453,10 +1466,17 @@
             // Smart Kopitiam Zero Sugar Coupling:
             // When customer requests Zero Sugar on Teh or Kopi without specifying condensed milk,
             // automatically couple to 'None' (Teh O Kosong / Kopi O Kosong) so Zero Sugar is valid!
-            if (swVal === 'Zero Sugar' && ['Teh', 'Kopi'].includes(engineState.base_drink)) {
-              if (!engineState.milk_type || engineState.milk_type === 'Condensed Milk') {
-                engineState.milk_type = 'None';
-                engineState.selected_item_id = engineState.base_drink === 'Teh' ? 'teh_o' : 'kopi_o';
+            if (swVal === 'Zero Sugar') {
+              if (['Teh', 'Kopi'].includes(engineState.base_drink) && (!engineState.selected_item_id || !getActiveItemRules().lockMilk)) {
+                if (!engineState.milk_type || engineState.milk_type === 'Condensed Milk') {
+                  engineState.milk_type = 'None';
+                  engineState.selected_item_id = engineState.base_drink === 'Teh' ? 'teh_o' : 'kopi_o';
+                }
+              } else {
+                const rules = getActiveItemRules();
+                if (!rules.allowZeroSugar) {
+                  engineState.sweetness_level = 'Less Sugar';
+                }
               }
             }
           }
@@ -1516,7 +1536,22 @@
           engineState.base_drink = slots.base_drink;
         }
         if (slots.temperature) engineState.temperature = slots.temperature;
-        if (slots.sweetness_level) engineState.sweetness_level = slots.sweetness_level;
+        
+        let zeroSugarNotice = '';
+        if (slots.sweetness_level) {
+          engineState.sweetness_level = slots.sweetness_level;
+          const rules = getActiveItemRules();
+          if (!rules.allowZeroSugar && engineState.sweetness_level === 'Zero Sugar') {
+            engineState.sweetness_level = 'Less Sugar';
+            if (userLang === 'zh') {
+              zeroSugarNotice = `（提示：${engineState.base_drink} 含炼乳本身带糖，无法做无糖，已为您调整为最少糖的少甜/Kurang Manis）`;
+            } else if (userLang === 'bm') {
+              zeroSugarNotice = ` (Nota: ${engineState.base_drink} dengan susu pekat tak boleh Tanpa Gula, kami setkan Kurang Manis ya!)`;
+            } else {
+              zeroSugarNotice = ` (Note: ${engineState.base_drink} with condensed milk cannot be Zero Sugar. Adjusted to Less Sugar / Kurang Manis!)`;
+            }
+          }
+        }
         if (slots.milk_type) engineState.milk_type = slots.milk_type;
         if (slots.temp_detail) engineState.temp_detail = slots.temp_detail;
         if (slots.ice_level) engineState.ice_level = slots.ice_level;
@@ -1528,7 +1563,8 @@
         if (!engineState.base_drink) {
           return getNlgReply('ask_change_what', {}, userLang);
         }
-        return checkMissingSlotsAndReply(getNlgReply('change_drink', { oldTitle, newTitle: getFullDrinkTitle() }, userLang), userLang);
+        const changeMsg = getNlgReply('change_drink', { oldTitle, newTitle: getFullDrinkTitle() }, userLang) + (zeroSugarNotice ? ' ' + zeroSugarNotice : '');
+        return checkMissingSlotsAndReply(changeMsg, userLang);
       }
 
       // 7. Pure Health RAG
@@ -1651,17 +1687,143 @@
     let recognition = null;
     let brewTimer = null;
 
-    function speakText(text, lang = engineState.detected_lang || uiLang) {
-      if (!ttsEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    let currentTtsAudio = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    async function speakText(text, lang = engineState.detected_lang || uiLang) {
+      if (!ttsEnabled || typeof window === 'undefined') return;
+
+      // 1. Stop any currently playing audio
+      if (currentTtsAudio) {
+        try { currentTtsAudio.pause(); } catch (e) {}
+        currentTtsAudio = null;
+      }
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+
+      // 2. High-Quality Microsoft Edge-TTS via Backend API
       try {
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        const hasChinese = /[\u4e00-\u9fff]/.test(text);
-        const hasMalay = /\b(boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan)\b/i.test(text);
-        utter.lang = hasChinese ? 'zh-CN' : (hasMalay ? 'ms-MY' : 'en-MY');
-        utter.rate = 1.03;
-        window.speechSynthesis.speak(utter);
-      } catch (e) {}
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, lang })
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          const audio = new Audio(audioUrl);
+          currentTtsAudio = audio;
+          audio.onended = () => { URL.revokeObjectURL(audioUrl); currentTtsAudio = null; };
+          await audio.play();
+          return;
+        }
+      } catch (err) {
+        // Server TTS unavailable (e.g. running as static file), fallback to WebSpeech
+      }
+
+      // 3. Fallback: Web Speech API with Natural Voice Selector
+      if ('speechSynthesis' in window) {
+        try {
+          const utter = new SpeechSynthesisUtterance(text);
+          const hasChinese = /[\u4e00-\u9fff]/.test(text);
+          const hasMalay = /\b(boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan|satu|gula|susu|nak|tukar|bungkus|tapau)\b/i.test(text);
+          utter.lang = hasChinese ? 'zh-CN' : (hasMalay ? 'ms-MY' : 'en-MY');
+          utter.rate = 1.02;
+
+          const voices = window.speechSynthesis.getVoices();
+          if (voices && voices.length > 0) {
+            const target = utter.lang.toLowerCase();
+            const match = voices.find(v => v.lang.toLowerCase().startsWith(target) && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Online')))
+              || voices.find(v => v.lang.toLowerCase().startsWith(target));
+            if (match) utter.voice = match;
+          }
+          window.speechSynthesis.speak(utter);
+        } catch (e) {}
+      }
+    }
+
+    async function startGroqRecording() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+        // Fallback to Web Speech API
+        startWebSpeechRecording();
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(track => track.stop());
+          const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+          if (audioBlob.size < 100) {
+            isRecording = false;
+            updateMicUi();
+            return;
+          }
+          updateMicUi('Transcribing (Groq)...');
+          try {
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'recording.webm');
+            const res = await fetch('/api/transcribe', {
+              method: 'POST',
+              body: formData
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.text && data.text.trim()) {
+                const inputEl = document.getElementById('chatInput');
+                inputEl.value = data.text;
+                handleUserMessage(data.text);
+                inputEl.value = '';
+              } else {
+                updateMicUi('No speech heard');
+                setTimeout(() => updateMicUi(), 2000);
+              }
+            } else {
+              throw new Error('Groq STT API returned error');
+            }
+          } catch (err) {
+            console.warn('Groq STT failed, fallback message', err);
+            updateMicUi('Groq STT Error');
+            setTimeout(() => updateMicUi(), 2000);
+          }
+          isRecording = false;
+          updateMicUi();
+        };
+        mediaRecorder.start();
+        isRecording = true;
+        updateMicUi('Listening (Groq Whisper)...');
+      } catch (err) {
+        console.warn('Microphone error:', err);
+        startWebSpeechRecording();
+      }
+    }
+
+    function stopGroqRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }
+
+    function startWebSpeechRecording() {
+      if (!recognition) {
+        updateMicUi('Mic unavailable — Type or Demo');
+        return;
+      }
+      let langVal = document.getElementById('sttLangSelect').value;
+      if (langVal === 'groq-whisper') langVal = 'en-MY';
+      recognition.lang = langVal;
+      try {
+        recognition.start();
+      } catch (e) {
+        isRecording = false;
+        updateMicUi();
+      }
     }
 
     function initSpeechRecognition() {
@@ -1689,7 +1851,7 @@
             inputEl.value = '';
           }
         };
-        rec.onerror = () => { isRecording = false; updateMicUi('Mic unavailable — Type or Demo'); };
+        rec.onerror = () => { isRecording = false; updateMicUi('Mic error — Type or Demo'); };
         rec.onend = () => { isRecording = false; updateMicUi(); };
         return rec;
       } catch (e) { return null; }
@@ -1701,7 +1863,7 @@
       if (isRecording) {
         micBtn.classList.add('mic-recording', 'bg-red-600');
         micBtn.classList.remove('bg-[#16A34A]');
-        badge.textContent = 'Listening...';
+        badge.textContent = customMsg || 'Listening...';
         badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-500 font-bold border border-red-500/40 shrink-0';
       } else {
         micBtn.classList.remove('mic-recording', 'bg-red-600');
@@ -1787,6 +1949,14 @@
     }
 
     function renderDetailVisuals() {
+      const rules = getActiveItemRules();
+
+      // Enforce allowZeroSugar if Condensed Milk is active BEFORE computing titles & prices
+      if (!rules.allowZeroSugar && engineState.sweetness_level === 'Zero Sugar') {
+        engineState.sweetness_level = 'Less Sugar';
+      }
+      computeDrinkPricingAndKb();
+
       const isIced = engineState.temperature === 'Iced';
       const allMenuItems = MENU_PAGES.flatMap(p => p.items);
       const itemStyle = allMenuItems.find(i => i.base === engineState.base_drink) || allMenuItems[1];
@@ -1797,13 +1967,6 @@
       document.getElementById('detailDrinkCal').textContent = engineState.calories !== null
         ? `${engineState.calories} kcal • ${engineState.sugars_g}g sugar`
         : 'Select options to calculate';
-
-      const rules = getActiveItemRules();
-
-      // Enforce allowZeroSugar if Condensed Milk is active
-      if (!rules.allowZeroSugar && engineState.sweetness_level === 'Zero Sugar') {
-        engineState.sweetness_level = 'Less Sugar';
-      }
 
       const curSweet = engineState.sweetness_level || 'Normal';
       const sweetMap = {
@@ -2213,15 +2376,24 @@
       });
 
       document.getElementById('micBtn').addEventListener('click', () => {
-        if (!recognition) {
-          updateMicUi('Use Chrome/Edge for Voice');
-          appendChatMessage('bot', "Browser voice input works best in Chrome or Edge. You can still type or click the Demo pills above!");
-          return;
-        }
-        if (isRecording) recognition.stop();
-        else {
-          recognition.lang = document.getElementById('sttLangSelect').value;
-          try { recognition.start(); } catch (e) { isRecording = false; updateMicUi(); }
+        const engine = document.getElementById('sttLangSelect').value;
+        if (engine === 'groq-whisper') {
+          if (isRecording) {
+            stopGroqRecording();
+          } else {
+            startGroqRecording();
+          }
+        } else {
+          if (!recognition) {
+            updateMicUi('Use Chrome/Edge for Voice');
+            appendChatMessage('bot', "Browser voice input works best in Chrome or Edge. You can still type or click the Demo pills above!");
+            return;
+          }
+          if (isRecording) recognition.stop();
+          else {
+            recognition.lang = engine;
+            try { recognition.start(); } catch (e) { isRecording = false; updateMicUi(); }
+          }
         }
       });
 

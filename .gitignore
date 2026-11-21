@@ -18,6 +18,10 @@ venv/
 env/
 ENV/
 
+# Environment variables and secrets
+.env
+*.env
+
 # Temporary and cache directories
 .uv_cache/
 uv_cache/
