@@ -1672,25 +1672,25 @@
           engineState.base_drink = slots.base_drink;
         }
 
-        // When switching drink or variant without explicit sweetness in the utterance:
-        // Reset sweetness to Normal (or Zero for Americano) rather than inheriting previous drink's custom sugar!
-        if (slots.sweetness_level) {
-          engineState.sweetness_level = slots.sweetness_level;
-        } else if (isDrinkChanged || slots.milk_type) {
-          engineState.sweetness_level = engineState.base_drink === 'Americano' ? 'Zero Sugar' : 'Normal';
-        }
+        const isExplicitBaseMention = Boolean(slots.base_drink && !slots.milk_type);
 
-        // Assign milk type: if specified in slots, use it; if drink changed, default to drink's standard milk!
+        // Assign milk type: if specified in slots, use it; if drink changed or plain base mentioned, default to drink's standard milk!
         if (slots.milk_type) {
           engineState.milk_type = slots.milk_type;
-        } else if (isDrinkChanged) {
-          if (['White Coffee', 'Neslo', 'Cham'].includes(engineState.base_drink)) {
-            engineState.milk_type = 'Condensed Milk';
-          } else if (['Teh O Limau', 'Americano'].includes(engineState.base_drink)) {
+        } else if (isDrinkChanged || isExplicitBaseMention) {
+          if (['Teh O Limau', 'Americano'].includes(engineState.base_drink)) {
             engineState.milk_type = 'None';
           } else {
             engineState.milk_type = 'Condensed Milk';
           }
+        }
+
+        // When switching drink or variant without explicit sweetness in the utterance:
+        // Reset sweetness to Normal (or Zero for Americano) rather than inheriting previous drink's custom sugar!
+        if (slots.sweetness_level) {
+          engineState.sweetness_level = slots.sweetness_level;
+        } else if (isDrinkChanged || slots.milk_type || isExplicitBaseMention) {
+          engineState.sweetness_level = engineState.base_drink === 'Americano' ? 'Zero Sugar' : 'Normal';
         }
 
         if (slots.temperature) engineState.temperature = slots.temperature;
@@ -2131,7 +2131,8 @@
     // 6. UI RENDERING & SYNC
     // =========================================================================
     function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
 
     function appendChatMessage(role, text) {
@@ -2448,6 +2449,7 @@
           <div><strong>Energy:</strong> ${escapeHtml(engineState.calories)} kcal (${escapeHtml(engineState.sugars_g)}g sugar, ${escapeHtml(engineState.caffeine_mg)}mg caffeine)</div>
         `;
         document.getElementById('receiptJsonOutput').textContent = JSON.stringify(engineState.dispense_signal, null, 2);
+        if (!brewTimer) startBrewAnimation();
       }
     }
 

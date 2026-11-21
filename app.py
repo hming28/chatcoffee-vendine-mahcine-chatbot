@@ -250,6 +250,11 @@ def extract_slots(text: str) -> Dict[str, str]:
         re.search(r"\b(?:normal sugar|biasa manis|manis biasa|std sugar)\b|\b100\s*%", t_low)
     ):
         slots["sweetness_level"] = "Normal"
+    elif (
+        re.search(r"\b(?:kopi\s*o|teh\s*o|cham\s*o|milo\s*o|kopi\s*c|teh\s*c|cham\s*c|teh\s*tarik|white\s*coffee|neslo)\b", t_low) or
+        any(w in text for w in ["咖啡乌", "茶乌", "美禄乌", "咖啡c", "茶c", "咖啡昔", "茶昔", "拉茶", "白咖啡", "雀巢美禄"])
+    ):
+        slots["sweetness_level"] = "Normal"
 
     # 4. Milk Type (Teh O Limau & Americano locked to None; 炼奶 correctly mapped to Condensed Milk)
     if slots.get("base_drink") in ("Teh O Limau", "Americano"):
@@ -612,7 +617,8 @@ def chat_endpoint(req: ChatRequest):
 
     # 4. Health RAG query grounded on unified_coffee_kb.csv (Direct lookup if drink specified, no cart mutation)
     is_calorie_inquiry = bool(re.search(r"\b(?:calorie|calories|kalori|khasiat|nutrisi|多少卡|卡路里|热量)\b", t_low))
-    if pred_intent == "health_query" or (is_calorie_inquiry and not was_awaiting_confirm):
+    has_health_question = bool(re.search(r"\b(?:what|apa|which|mana|ada|rekomen|recommend|suggest|cadang|sihat|healthy|diet)\b", t_low) or "?" in utterance)
+    if (pred_intent == "health_query" and (has_health_question or is_calorie_inquiry)) or (is_calorie_inquiry and not was_awaiting_confirm):
         if extracted_slots.get("base_drink") and not df_kb.empty:
             b = extracted_slots["base_drink"]
             cand = df_kb[
@@ -657,10 +663,19 @@ def chat_endpoint(req: ChatRequest):
         }
 
     # 5. Merge ALL extracted slots (preserving multi-slot replies during pending_slot clarification)
+    is_drink_changed = bool(extracted_slots.get("base_drink") and extracted_slots["base_drink"] != state.get("base_drink"))
+    is_explicit_base_mention = bool(extracted_slots.get("base_drink") and not extracted_slots.get("milk_type"))
+
     if state.get("pending_slot") and state["pending_slot"] in extracted_slots:
         state["pending_slot"] = None
     for k, v in extracted_slots.items():
         state[k] = v
+
+    if is_drink_changed or is_explicit_base_mention:
+        if not extracted_slots.get("milk_type"):
+            state["milk_type"] = "None" if state.get("base_drink") in ("Teh O Limau", "Americano") else "Condensed Milk"
+        if not extracted_slots.get("sweetness_level"):
+            state["sweetness_level"] = "Zero Sugar" if state.get("base_drink") == "Americano" else "Normal"
 
     # Enforce milk & condensed-milk zero-sugar constraints across ALL intents
     if state.get("base_drink") in ("Teh O Limau", "Americano"):
