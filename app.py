@@ -33,7 +33,9 @@ app.add_middleware(
 # -------------------------------------------------------------
 # 1. Load ML Artifacts & Knowledge Base Datasets
 # -------------------------------------------------------------
-MODEL_PATH = os.path.join(BASE_DIR, "models", "rojak_intent_classifier.joblib")
+MODEL_PATH = os.path.join(BASE_DIR, "models", "chatcoffee_intent_classifier.joblib")
+if not os.path.exists(MODEL_PATH):
+    MODEL_PATH = os.path.join(BASE_DIR, "models", "rojak_intent_classifier.joblib")
 SLANG_PATH = os.path.join(BASE_DIR, "NLP_Datasets", "shortform-dict.json")
 if not os.path.exists(SLANG_PATH):
     SLANG_PATH = os.path.join(BASE_DIR, "shortform-dict.json")
