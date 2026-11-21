@@ -528,7 +528,9 @@ def chat_endpoint(req: ChatRequest):
 # -------------------------------------------------------------
 # 5. Serve Frontend Kiosk UI
 # -------------------------------------------------------------
-HTML_FILE = os.path.join(BASE_DIR, "chatcoffee_malaysian_unmanned_smart_kiosk.html")
+HTML_FILE = os.path.join(BASE_DIR, "index.html")
+if not os.path.exists(HTML_FILE):
+    HTML_FILE = os.path.join(BASE_DIR, "chatcoffee_malaysian_unmanned_smart_kiosk.html")
 
 @app.get("/", response_class=HTMLResponse)
 def serve_kiosk():

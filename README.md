@@ -42,16 +42,17 @@ An autonomous, multi-turn conversational AI kiosk engineered specifically for au
 ## 📂 Project Structure
 
 ```text
+├── index.html                                     # Interactive Smart Kiosk Web UI (Live Voice & ML)
 ├── app.py                                         # FastAPI server hosting REST API & Kiosk UI
-├── chatcoffee_malaysian_unmanned_smart_kiosk.html # Interactive Kiosk Prototype (Embedded ML)
+├── ChatCoffee_NLP_Model_Training_and_Evaluation.ipynb # Complete Jupyter Notebook (EDA, ML & Evaluation)
 ├── chatcoffee_gold_850.csv                        # 850-instance Gold NLU Benchmark Dataset
 ├── unified_coffee_kb.csv                          # 378-drink Grounded Knowledge Base
 ├── requirements.txt                               # Production Python dependencies
 ├── Dockerfile                                     # 1-Click Container Deployment
 ├── Procfile                                       # Render / PaaS deployment entrypoint
 ├── models/
-│   ├── chatcoffee_intent_classifier.joblib             # Serialized Scikit-Learn champion model
-│   └── chatcoffee_model_web.json                       # Mathematical vector-matrix weights for Web
+│   ├── chatcoffee_intent_classifier.joblib        # Serialized Scikit-Learn champion model
+│   └── chatcoffee_model_web.json                  # Mathematical vector-matrix weights for Client Web
 └── NLP_Datasets/
     ├── shortform-dict.json                        # 341 Malaysian slang normalization rules
     ├── kopitiam.csv                               # Kopitiam beverage domain ontology
@@ -64,8 +65,8 @@ An autonomous, multi-turn conversational AI kiosk engineered specifically for au
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone https://github.com/<your-username>/<your-repo-name>.git
-cd <your-repo-name>
+git clone https://github.com/hming28/chatcoffee-vending-mahcine-chatbot.git
+cd chatcoffee-vending-mahcine-chatbot
 pip install -r requirements.txt
 ```
 
@@ -77,11 +78,15 @@ Visit `http://localhost:8000` in your browser to interact with the live Kiosk in
 
 ---
 
-## 🌐 API Endpoints
+## 🌐 API Endpoints & Live Deployment
+
+* **Live Kiosk URL**: [https://chatcoffee.onrender.com/](https://chatcoffee.onrender.com/)
 
 | Method | Endpoint | Description |
 | :---: | :--- | :--- |
-| `GET` | `/` | Serves the interactive Smart Kiosk Web UI |
-| `GET` | `/api/health` | System health, model version, and dataset row count |
+| `GET` | `/` | Serves the interactive Smart Kiosk Web UI (`index.html`) |
+| `GET` | `/api/health` | System health check, active model, and dataset statistics |
 | `POST` | `/api/predict_intent` | Raw ML classification with Softmax class probabilities |
 | `POST` | `/api/chat` | End-to-end multi-turn conversational dialogue turn |
+| `POST` | `/api/tts` | High-fidelity Malaysian neural speech synthesis (1.25x speed) |
+| `POST` | `/api/transcribe` | Audio file transcription endpoint |
