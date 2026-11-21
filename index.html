@@ -811,7 +811,16 @@
       if (!text || typeof text !== 'string') return '';
       const slangMap = (typeof ROJAK_ML_MODEL !== 'undefined' && ROJAK_ML_MODEL.slang_dict) ? ROJAK_ML_MODEL.slang_dict : MANGLISH_DICT;
       let t = text.toLowerCase();
-      t = t.split(/\s+/).map(tok => (slangMap[tok] || MANGLISH_DICT[tok] || tok)).join(' ');
+      t = t.split(/\s+/).map(tok => {
+        if (tok === '__proto__' || tok === 'constructor' || tok === 'prototype') return tok;
+        if (slangMap && Object.prototype.hasOwnProperty.call(slangMap, tok) && typeof slangMap[tok] === 'string') {
+          return slangMap[tok];
+        }
+        if (Object.prototype.hasOwnProperty.call(MANGLISH_DICT, tok) && typeof MANGLISH_DICT[tok] === 'string') {
+          return MANGLISH_DICT[tok];
+        }
+        return tok;
+      }).join(' ');
       return t.replace(/[^\w\s\u4e00-\u9fff]/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
@@ -844,13 +853,22 @@
       }
 
       // Temperature Entity + Optional Warm (Suam) & Ice Level (Less Ice / No Ice)
+      const hasIceNegation = /\b(?:bukan\s+(?:ais|ice)|don't\s+want\s+ice|do\s+not\s+want\s+ice|tak\s+mau\s+ais)\b/i.test(tLow) ||
+        text.includes('不要冰') || text.includes('不要加冰') || text.includes('不是冰');
+
       if (text.includes('温') || /\b(?:suam|warm)\b/.test(tLow)) {
         slots.temperature = 'Hot';
         slots.temp_detail = 'Warm';
       } else if (text.includes('热') || text.includes('熱') || /\b(?:panas|hot)\b/.test(tLow)) {
         slots.temperature = 'Hot';
         slots.temp_detail = 'Hot';
-      } else if (text.includes('冰') || text.includes('冻') || text.includes('凍') || text.includes('冷') || /\b(?:peng|ping|ice|iced|ais|sejuk|dingin|cold)\b/.test(tLow)) {
+      } else if (hasIceNegation) {
+        slots.temperature = 'Hot';
+        slots.temp_detail = 'Hot';
+      } else if (
+        text.includes('冰') || text.includes('冻') || text.includes('凍') || text.includes('冷') ||
+        (/\b(?:peng|ping|ice|iced|ais|sejuk|dingin|cold)\b/i.test(tLow) && !/\b(?:price|pricing)\b/i.test(tLow))
+      ) {
         slots.temperature = 'Iced';
       }
 
@@ -1023,10 +1041,12 @@
       ) {
         return { intent: 'system_reset', confidence: 1.0, is_ml: false, probabilities: {} };
       }
-      if (
-        /\b(?:tambah|tambah lagi|add another|add more|another cup|two cups|2 cups|dua cawan|extra cup)\b/.test(tLow) ||
-        utterance.includes('再加一杯') || utterance.includes('加一杯') || utterance.includes('两杯')
-      ) {
+      const isIngredientMod = /\b(?:tambah|extra)\s+(?:gula|manis|susu|ais|kurang)\b/i.test(tLow);
+      const isMultiCup =
+        /\b(?:[23]\s+cups?|two\s+cups?|three\s+cups?|dua\s+cawan|tiga\s+cawan|two\s+coffees?|three\s+coffees?|another\s+cup|extra\s+cup|add\s+another|tambah\s+lagi)\b/i.test(tLow) ||
+        /\btambah\s+(?:cawan|gelas|cup|drink|air|satu|lagi\s+satu)\b/i.test(tLow) ||
+        ['再加一杯', '加多一杯', '加一杯', '两杯', '三杯', '两杯咖啡', '三杯咖啡'].some(w => utterance.includes(w));
+      if (isMultiCup && !isIngredientMod) {
         return { intent: 'single_cup_limit', confidence: 1.0, is_ml: false, probabilities: {} };
       }
       const hasModifyCue = /\b(?:change|tukar|ganti|switch|instead|bukan|ubah|wait)\b/.test(tLow) || /[换改]/.test(utterance);
@@ -1450,6 +1470,10 @@
     }
 
     function processUtterance(utterance) {
+      if (engineState.status === 'CONFIRMED' || engineState.status === 'DISPENSING' || activeScreen === 'dispense') {
+        resetEngineState(false);
+        activeScreen = 'home';
+      }
       const tLow = utterance.toLowerCase().trim();
       const cleanUtt = preprocessRojakText(utterance);
       const slots = extractDrinkSlots(utterance);
@@ -1481,7 +1505,37 @@
         return triggerConfirmAndDispense(userLang);
       }
 
-      // 4. DYNAMIC TEMPERATURE SWITCHER (Fixes Hot <-> Cold mid-slot bug!)
+      // 4. Pure Health & Calorie RAG (Direct nutrition response, without mutating cart slots or hijacking pending slot)
+      const isCalorieQuery = intent === 'health_query' ||
+        /\b(?:calorie|calories|kalori|nutrisi|gula|kafein|卡路里|多少卡|热量|含糖量)\b/i.test(tLow);
+
+      if (isCalorieQuery) {
+        if (slots.base_drink) {
+          const match = KOPITIAM_KB.find(item =>
+            item.base === slots.base_drink &&
+            (!slots.temperature || item.temp === slots.temperature) &&
+            (!slots.sweetness_level || item.sweet === slots.sweetness_level)
+          ) || KOPITIAM_KB.find(item =>
+            item.base === slots.base_drink &&
+            (!slots.temperature || item.temp === slots.temperature)
+          ) || KOPITIAM_KB.find(item => item.base === slots.base_drink);
+
+          if (match) {
+            let reply = '';
+            if (userLang === 'zh') {
+              reply = `${match.name} 的营养与价格信息：热量约 ${match.cal} kcal，含糖量 ${match.sugar}g，咖啡因 ${match.caf}mg，单价 RM ${match.price.toFixed(2)}。`;
+            } else if (userLang === 'bm') {
+              reply = `Maklumat nutrisi ${match.name}: Kira-kira ${match.cal} kcal, ${match.sugar}g gula, ${match.caf}mg kafein, harga RM ${match.price.toFixed(2)}.`;
+            } else {
+              reply = `Nutrition info for ${match.name}: Approx ${match.cal} kcal, ${match.sugar}g sugar, ${match.caf}mg caffeine, price RM ${match.price.toFixed(2)}.`;
+            }
+            return reply;
+          }
+        }
+        return getNlgReply('health_query', {}, userLang);
+      }
+
+      // 5. DYNAMIC TEMPERATURE SWITCHER (Fixes Hot <-> Cold mid-slot bug!)
       if (
         engineState.base_drink &&
         (
@@ -1758,6 +1812,7 @@
           engineState.milk_type = 'Condensed Milk';
         }
       }
+      computeDrinkPricingAndKb();
       engineState.status = 'AWAITING_CONFIRMATION';
       engineState.pending_slot = null;
       return `${p}${getNlgReply('confirm_order', { title: getFullDrinkTitle(), price: engineState.price_rm }, lang)}`;
@@ -2316,6 +2371,7 @@
     }
 
     function syncAllUi() {
+      document.documentElement.lang = uiLang === 'zh' ? 'zh-CN' : (uiLang === 'bm' ? 'ms' : 'en');
       document.getElementById('screenHome').classList.toggle('hidden', activeScreen !== 'home');
       document.getElementById('screenMenu').classList.toggle('hidden', activeScreen !== 'menu');
       document.getElementById('screenDetail').classList.toggle('hidden', activeScreen !== 'detail');
@@ -2387,9 +2443,9 @@
         document.getElementById('receiptDrinkTitle').textContent = getFullDrinkTitle();
         document.getElementById('receiptTotalRm').textContent = `RM ${engineState.price_rm.toFixed(2)}`;
         document.getElementById('receiptBreakdown').innerHTML = `
-          <div><strong>Base:</strong> ${engineState.base_drink} | <strong>Temp:</strong> ${engineState.temperature}</div>
-          <div><strong>Sweetness:</strong> ${engineState.sweetness_level} | <strong>Milk:</strong> ${engineState.milk_type}</div>
-          <div><strong>Energy:</strong> ${engineState.calories} kcal (${engineState.sugars_g}g sugar, ${engineState.caffeine_mg}mg caffeine)</div>
+          <div><strong>Base:</strong> ${escapeHtml(engineState.base_drink)} | <strong>Temp:</strong> ${escapeHtml(engineState.temperature)}</div>
+          <div><strong>Sweetness:</strong> ${escapeHtml(engineState.sweetness_level)} | <strong>Milk:</strong> ${escapeHtml(engineState.milk_type)}</div>
+          <div><strong>Energy:</strong> ${escapeHtml(engineState.calories)} kcal (${escapeHtml(engineState.sugars_g)}g sugar, ${escapeHtml(engineState.caffeine_mg)}mg caffeine)</div>
         `;
         document.getElementById('receiptJsonOutput').textContent = JSON.stringify(engineState.dispense_signal, null, 2);
       }

@@ -203,15 +203,22 @@ def extract_slots(text: str) -> Dict[str, str]:
         slots["base_drink"] = "Teh"
 
     # 2. Temperature & Ice/Warmth Modifiers
+    has_ice_negation = bool(
+        re.search(r"\b(?:bukan\s+(?:ais|ice)|don't\s+want\s+ice|do\s+not\s+want\s+ice|tak\s+mau\s+ais)\b", t_low) or
+        any(w in text for w in ["不要冰", "不要加冰", "不是冰"])
+    )
     if "温" in text or re.search(r"\b(?:suam|warm)\b", t_low):
         slots["temperature"] = "Hot"
         slots["temp_detail"] = "Warm"
     elif "热" in text or "熱" in text or re.search(r"\b(?:panas|hot)\b", t_low):
         slots["temperature"] = "Hot"
         slots["temp_detail"] = "Hot"
+    elif has_ice_negation:
+        slots["temperature"] = "Hot"
+        slots["temp_detail"] = "Hot"
     elif (
         "冰" in text or "冻" in text or "凍" in text or "冷" in text or
-        re.search(r"\b(?:peng|ping|ice|iced|ais|sejuk|dingin|cold)\b", t_low)
+        (re.search(r"\b(?:peng|ping|ice|iced|ais|sejuk|dingin|cold)\b", t_low) and not re.search(r"\b(?:price|pricing)\b", t_low))
     ):
         slots["temperature"] = "Iced"
 
@@ -338,11 +345,20 @@ class ChatRequest(BaseModel):
     state: Optional[Dict[str, Any]] = None
 
 
+MAX_SESSIONS = 500
+ALLOWED_STATE_KEYS = {
+    "status", "base_drink", "temperature", "sweetness_level", "milk_type",
+    "temp_detail", "ice_level", "pending_slot", "price_rm", "calories",
+    "sugars_g", "caffeine_mg", "history"
+}
 sessions: Dict[str, Dict[str, Any]] = {}
 
 
 def get_session(session_id: str) -> Dict[str, Any]:
     if session_id not in sessions:
+        if len(sessions) >= MAX_SESSIONS:
+            oldest_key = next(iter(sessions))
+            sessions.pop(oldest_key, None)
         sessions[session_id] = {
             "status": "IDLE",
             "base_drink": None,
@@ -439,9 +455,9 @@ async def transcribe_audio_endpoint(
         if res.status_code == 200:
             result = res.json()
             return {"text": result.get("text", "").strip(), "status": "success", "engine": f"Groq {selected_model}"}
-        return JSONResponse(status_code=res.status_code, content={"error": res.text, "status": "error"})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e), "status": "error"})
+        return JSONResponse(status_code=res.status_code, content={"error": "Transcription service error", "status": "error"})
+    except Exception:
+        return JSONResponse(status_code=500, content={"error": "Audio processing failed", "status": "error"})
 
 
 @app.post("/api/tts")
@@ -488,7 +504,7 @@ async def tts_endpoint(req: TTSRequest):
                 return Response(content=g_res.content, media_type="audio/mpeg", headers={"X-Voice-Used": f"Google-Natural-{glang}"})
         except Exception:
             pass
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(status_code=500, content={"error": "Speech synthesis failed"})
 
 
 @app.get("/api/tts")
@@ -513,19 +529,46 @@ def predict_intent_endpoint(req: ChatRequest):
 @app.post("/api/chat")
 def chat_endpoint(req: ChatRequest):
     utterance = req.utterance.strip()
+    if len(utterance) > 500:
+        return JSONResponse(status_code=400, content={"error": "Utterance exceeds 500 character limit"})
+
     session_id = req.session_id or "default"
-    state = req.state if req.state is not None else get_session(session_id)
+    if req.state is not None and isinstance(req.state, dict):
+        state = {k: v for k, v in req.state.items() if k in ALLOWED_STATE_KEYS}
+    else:
+        state = get_session(session_id)
+
+    # Auto-reset completed order state upon new utterance
+    if state.get("status") in ("CONFIRMED", "DISPENSING"):
+        state.update({
+            "status": "IDLE", "base_drink": None, "temperature": None,
+            "sweetness_level": None, "milk_type": None, "temp_detail": "Hot",
+            "ice_level": "Normal Ice", "pending_slot": None, "price_rm": 0.0
+        })
+
+    is_zh = bool(re.search(r"[\u4e00-\u9fff]", utterance))
+    t_low = utterance.lower()
+
+    if not utterance:
+        response = "请问有什么可以帮您？可随时说出想喝的饮品。" if is_zh else "Boleh saya bantu boss? Sila beritahu minuman yang diingini."
+        return {
+            "response": response, "intent": "fallback", "model_intent": "fallback",
+            "confidence": 0.0, "probabilities": {}, "clean_text": "", "slots": {}, "state": state
+        }
 
     c_text = clean_text(utterance)
     pred_intent, conf, prob_dict = predict_intent_ml(c_text)
     extracted_slots = extract_slots(utterance)
-
-    is_zh = bool(re.search(r"[\u4e00-\u9fff]", utterance))
-    t_low = utterance.lower()
     was_awaiting_confirm = state.get("status") == "AWAITING_CONFIRMATION"
 
     # 1. Single-cup vending machine limit
-    if re.search(r"\b(?:tambah|tambah lagi|add another|two cups|2 cups|dua cawan)\b", t_low) or "再加一杯" in utterance or "两杯" in utterance:
+    is_ingredient_mod = bool(re.search(r"\b(?:tambah|extra)\s+(?:gula|manis|susu|ais|kurang)\b", t_low))
+    is_multi_cup = (
+        bool(re.search(r"\b(?:[23]\s+cups?|two\s+cups?|three\s+cups?|dua\s+cawan|tiga\s+cawan|two\s+coffees?|three\s+coffees?|another\s+cup|extra\s+cup|add\s+another|tambah\s+lagi)\b", t_low)) or
+        bool(re.search(r"\btambah\s+(?:cawan|gelas|cup|drink|air|satu|lagi\s+satu)\b", t_low)) or
+        any(w in utterance for w in ["再加一杯", "加多一杯", "加一杯", "两杯", "三杯", "两杯咖啡", "三杯咖啡"])
+    )
+    if is_multi_cup and not is_ingredient_mod:
         response = (
             "抱歉老板！ChatCoffee 无人咖啡机每次只能单杯出料（Single-Cup Dispenser Limit）。请先确认并取走当前这杯，再点下一杯哦！"
             if is_zh else
@@ -567,12 +610,50 @@ def chat_endpoint(req: ChatRequest):
             "confidence": 1.0, "probabilities": prob_dict, "clean_text": c_text, "slots": extracted_slots, "state": state
         }
 
-    # 4. Health RAG query grounded on unified_coffee_kb.csv
-    if pred_intent == "health_query" and not extracted_slots:
+    # 4. Health RAG query grounded on unified_coffee_kb.csv (Direct lookup if drink specified, no cart mutation)
+    is_calorie_inquiry = bool(re.search(r"\b(?:calorie|calories|kalori|khasiat|nutrisi|多少卡|卡路里|热量)\b", t_low))
+    if pred_intent == "health_query" or (is_calorie_inquiry and not was_awaiting_confirm):
+        if extracted_slots.get("base_drink") and not df_kb.empty:
+            b = extracted_slots["base_drink"]
+            cand = df_kb[
+                (df_kb["channel"].str.contains("Kopitiam", case=False, na=False)) &
+                (df_kb["drink_name"].str.contains(b, case=False, na=False))
+            ]
+            if not cand.empty:
+                if "temperature" in extracted_slots:
+                    cand_temp = cand[cand["temperature"].str.lower() == extracted_slots["temperature"].lower()]
+                    if not cand_temp.empty:
+                        cand = cand_temp
+                row = cand.iloc[0]
+                dname = row["drink_name"]
+                cal = int(row["calories"])
+                sug = row["sugars_g"]
+                caf = int(row["caffeine_mg"]) if pd.notnull(row["caffeine_mg"]) else 0
+                response = (
+                    f"{dname} 的营养信息：约 {cal} kcal 热量、{sug:g}g 糖分及 {caf}mg 咖啡因。"
+                    if is_zh else
+                    f"Maklumat nutrisi {dname}: Kira-kira {cal} kcal, {sug:g}g gula dan {caf}mg kafein."
+                )
+                return {
+                    "response": response, "intent": "health_query", "model_intent": pred_intent,
+                    "confidence": conf, "probabilities": prob_dict, "clean_text": c_text, "slots": extracted_slots, "state": state
+                }
         response = query_healthy_drinks_from_kb(is_zh)
         return {
             "response": response, "intent": "health_query", "model_intent": pred_intent,
             "confidence": conf, "probabilities": prob_dict, "clean_text": c_text, "slots": extracted_slots, "state": state
+        }
+
+    # Low-confidence out-of-domain rejection
+    if conf < 0.25 and not extracted_slots and not was_awaiting_confirm and not state.get("pending_slot"):
+        response = (
+            "抱歉，我不太明白您的意思。请问您想喝什么饮料呢？可选咖啡（Kopi）、奶茶（Teh）、美禄（Milo）等。"
+            if is_zh else
+            "Maaf boss, saya tak berapa faham. Boleh ulang semula? Kita ada Kopi, Teh, Cham, Milo, White Coffee."
+        )
+        return {
+            "response": response, "intent": "fallback", "model_intent": pred_intent,
+            "confidence": conf, "probabilities": prob_dict, "clean_text": c_text, "slots": {}, "state": state
         }
 
     # 5. Merge ALL extracted slots (preserving multi-slot replies during pending_slot clarification)
