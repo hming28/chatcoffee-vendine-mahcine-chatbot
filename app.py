@@ -230,6 +230,7 @@ class TTSRequest(BaseModel):
     text: str
     lang: Optional[str] = "en"
     voice: Optional[str] = None
+    tone: Optional[str] = "female"
 
 @app.get("/api/health")
 def health_check():
@@ -317,14 +318,15 @@ async def tts_endpoint(req: TTSRequest):
     has_chinese = bool(re.search(r"[\u4e00-\u9fff]", clean_speech))
     has_malay = bool(re.search(r"\b(?:boss|sila|minum|panas|sejuk|siap|boleh|pesanan|maaf|mesin|cawan|satu|gula|susu|nak|tukar|bungkus|tapau|kurang|manis|terima|kasih|jom)\b", clean_speech.lower()))
     
+    tone = (req.tone or "female").lower()
     if req.voice:
         voice = req.voice
     elif has_chinese:
-        voice = "zh-CN-XiaoxiaoNeural"
+        voice = "zh-CN-YunxiNeural" if tone == "male" else "zh-CN-XiaoxiaoNeural"
     elif has_malay:
-        voice = "ms-MY-YasminNeural"
+        voice = "ms-MY-OsmanNeural" if tone == "male" else "ms-MY-YasminNeural"
     else:
-        voice = "en-MY-YasminNeural"
+        voice = "en-MY-OsmanNeural" if tone == "male" else "en-MY-YasminNeural"
         
     try:
         communicate = edge_tts.Communicate(clean_speech, voice)
@@ -346,8 +348,8 @@ async def tts_endpoint(req: TTSRequest):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/api/tts")
-async def tts_get_endpoint(text: str, voice: Optional[str] = None):
-    return await tts_endpoint(TTSRequest(text=text, voice=voice))
+async def tts_get_endpoint(text: str, voice: Optional[str] = None, tone: Optional[str] = "female"):
+    return await tts_endpoint(TTSRequest(text=text, voice=voice, tone=tone))
 
 @app.post("/api/predict_intent")
 def predict_intent_endpoint(req: ChatRequest):
